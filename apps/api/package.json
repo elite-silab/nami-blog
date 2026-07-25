@@ -7,6 +7,7 @@
     "dev": "wrangler dev --port 8788 --env-file ../../.env",
     "build": "wrangler deploy --dry-run --env=\"\" --outdir=dist",
     "deploy": "wrangler deploy --env=\"\"",
+    "deploy:full": "wrangler d1 migrations apply nami-blog --remote && wrangler deploy --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
