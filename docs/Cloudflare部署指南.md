@@ -128,6 +128,10 @@ database_id = "粘贴你的 Database ID"
 
 ## 常见问题
 
+### Pages 提示 `Failed building Pages Functions`
+
+请先确认使用了仓库最新版本，且根目录不存在旧的 `functions/` 目录。Nami 的 API 由 `apps/api` 中的独立 Worker 提供，Pages 只负责部署 `apps/web/dist` 静态前端，不需要 Pages Functions。
+
 ### 登录提示凭据错误
 
 确认 `ADMIN_INITIAL_PASSWORD` 是 Workers 的 **Secret**、长度至少 12 个字符，并且没有使用 `nami-local-admin`。如果数据库已经存在管理员，Secret 不会覆盖旧密码。
