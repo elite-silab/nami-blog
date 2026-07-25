@@ -126,77 +126,121 @@ nami-blog/
 └── pnpm-workspace.yaml           # Monorepo workspace
 ```
 
-## ☁️ 部署到 Cloudflare
+## ☁️ 部署到 Cloudflare（零域名 · 纯免费）
 
-> 📖 **新手？** 请参阅 [Cloudflare 部署指南（零域名 · 纯免费）](docs/Cloudflare部署指南.md)，手把手 8 步完成。
+**不需要域名、不需要花钱**，Cloudflare 免费提供 `.workers.dev` 和 `.pages.dev` 子域名。
 
-本项目部署为两个独立的 Cloudflare 服务：
-
-| 服务            | 类型    | 说明                    |
-| --------------- | ------- | ----------------------- |
-| `nami-blog-api` | Workers | RESTful API + D1 数据库 |
-| `nami-blog-web` | Pages   | Astro SSG 静态前端      |
-
-### 1. 部署 API
+### 前置准备
 
 ```bash
-# 创建 D1 数据库，记录返回的 database_id
+# 安装 Wrangler CLI
+npm install -g wrangler
+
+# 登录 Cloudflare（浏览器会弹出授权页面，点 Allow）
+wrangler login
+```
+
+### 第一步：创建 D1 数据库
+
+```bash
 wrangler d1 create nami-blog
-
-# 将 database_id 填入 apps/api/wrangler.toml
-
-# 执行远程迁移 + 创建管理员
-pnpm db:migrate:prod
-pnpm db:seed -- --remote
-
-# 在 Cloudflare Dashboard → Workers → Settings 添加 Secrets：
-# JWT_SECRET、JWT_REFRESH_SECRET（使用不同的随机值）
-
-# 部署
-pnpm deploy:api
 ```
 
-### 2. 部署前端
+输出中会显示 `database_id = "xxxx-xxxx-xxxx"` ，**复制这个 ID**。
 
-在 Cloudflare Pages → Settings → Environment variables 中填写：
+### 第二步：填写 database_id
 
-| 变量             | 值                             |
-| ---------------- | ------------------------------ |
-| `PUBLIC_API_URL` | `https://your-api.workers.dev` |
-| `SITE_URL`       | `https://your-site.pages.dev`  |
+打开 `apps/api/wrangler.toml`，把这行：
+
+```toml
+database_id = "<replace-with-production-d1-id>"
+```
+
+替换为刚才复制的 ID：
+
+```toml
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+### 第三步：执行数据库迁移
 
 ```bash
-pnpm deploy:web
+wrangler d1 migrations apply nami-blog --remote --config apps/api/wrangler.toml
 ```
+
+### 第四步：部署 API
+
+```bash
+cd apps/api && wrangler deploy
+```
+
+部署成功后记下 API 地址：`https://nami-blog-api.你的用户名.workers.dev`
+
+### 第五步：设置 API 密钥
+
+打开 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → `nami-blog-api` → **Settings** → **Variables and Secrets**
+
+添加两个 **Secret**：
+
+| Name | Value |
+|---|---|
+| `JWT_SECRET` | 运行 `openssl rand -hex 32` 生成 |
+| `JWT_REFRESH_SECRET` | 再运行一次 `openssl rand -hex 32` 生成 |
+
+添加一个 **Plaintext** 变量：
+
+| Name | Value |
+|---|---|
+| `CORS_ORIGIN` | `https://nami-blog.你的用户名.pages.dev` |
+
+### 第六步：创建管理员账号
+
+```bash
+cd ../.. && pnpm db:seed -- --remote
+```
+
+按提示输入确认文字和管理员密码。
+
+### 第七步：部署前端
+
+```bash
+# 构建（把 API 地址换成你的）
+PUBLIC_API_URL=https://nami-blog-api.你的用户名.workers.dev \
+SITE_URL=https://nami-blog.你的用户名.pages.dev \
+pnpm --filter @nami/web build
+
+# 上传到 Cloudflare Pages
+PUBLIC_API_URL=https://nami-blog-api.你的用户名.workers.dev \
+SITE_URL=https://nami-blog.你的用户名.pages.dev \
+pnpm exec wrangler pages deploy apps/web/dist --project-name=nami-blog
+```
+
+### 第八步：验证 ✅
+
+打开 `https://nami-blog.你的用户名.pages.dev` 看到博客首页，再打开 `/admin/login` 用刚才设的密码登录后台。
+
+---
 
 ## 🔄 CI/CD 自动部署
 
-本项目使用 **GitHub Actions** 实现自动化构建和部署：
+每次 push 到 `main` 自动部署，不用每次手动执行命令。
 
 ### CI Pipeline (`ci.yml`)
 
-每次 push 到 `main` 或 PR 时自动运行：
-
-| 阶段                 | 内容                              |
-| -------------------- | --------------------------------- |
-| **Lint & TypeCheck** | ESLint + TypeScript 类型检查      |
-| **Test**             | Vitest 全量测试（63 个用例）      |
-| **Build**            | 构建 API + Web，上传产物 artifact |
+push 或 PR 时自动运行：Lint → TypeCheck → Test → Build
 
 ### CD Pipeline (`deploy.yml`)
 
-push 到 `main` 分支时自动部署前端到 Cloudflare Pages。
+push 到 `main` 时自动部署前端到 Cloudflare Pages。
 
-#### 配置 GitHub Secrets
+**配置 GitHub Secrets**（仓库 Settings → Secrets → Actions）：
 
-在仓库 **Settings → Secrets and variables → Actions** 中添加：
+| Secret | 获取方式 |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | [Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → Create Token → "Edit Cloudflare Workers" 模板 |
+| `CLOUDFLARE_ACCOUNT_ID` | Dashboard 右侧栏 Account ID |
 
-| Secret                  | 说明                | 获取方式                                                                                                                                 |
-| ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Cloudflare API 令牌 | [Dashboard → My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → 创建 Token → 选择 "Edit Cloudflare Workers" 模板 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID  | Dashboard 右侧栏 → Account ID                                                                                                            |
-
-配好后，每次 push 到 `main` 即自动构建并部署。
+配好后，每次 `git push` 即自动部署。
 
 > 📖 完整部署指南（含 DNS、WAF、缓存规则、灾难恢复）请参阅 [部署运维文档](docs/部署运维文档.md)。
 
