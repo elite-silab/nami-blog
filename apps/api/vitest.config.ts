@@ -10,7 +10,7 @@ export default defineConfig({
         bindings: {
           JWT_SECRET: "test-secret-key-for-testing-only",
           SITE_NAME: "Test Blog",
-          CORS_ORIGIN: "http://localhost:4321",
+          CORS_ORIGIN: "http://localhost:4322",
         },
       },
     }),

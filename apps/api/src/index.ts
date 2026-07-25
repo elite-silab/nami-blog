@@ -54,7 +54,7 @@ app.notFound((c) =>
 
 // ── CORS ──
 app.use("*", (c, next) => {
-  const configuredOrigin = c.env.CORS_ORIGIN || "http://localhost:4321";
+  const configuredOrigin = c.env.CORS_ORIGIN || "http://localhost:4322";
   const apiHostname = new URL(c.req.url).hostname;
   const isLocalApi = apiHostname === "localhost" || apiHostname === "127.0.0.1";
 

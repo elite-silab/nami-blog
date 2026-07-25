@@ -113,7 +113,7 @@ async function main() {
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error("D1 写入失败，请查看上方 Wrangler 错误信息");
 
-  console.log(`\n管理员 ${username} 创建成功。${isRemote ? "" : "现在可以启动项目并访问 http://localhost:4321/admin/login。"}\n`);
+  console.log(`\n管理员 ${username} 创建成功。${isRemote ? "" : "现在可以启动项目并访问 http://localhost:4322/admin/login。"}\n`);
 }
 
 main().catch((error) => {

@@ -34,21 +34,6 @@ describe("GET / — 健康检查", () => {
 
   it("本地开发应自动允许默认 Web 地址跨域访问", async () => {
     const req = createRequest("/healthz", {
-      headers: { Origin: "http://localhost:4321" },
-    });
-    const res = await app.fetch(req, {
-      ...env,
-      CORS_ORIGIN: "https://nami-blog.pages.dev",
-    } as any);
-
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://localhost:4321",
-    );
-    expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
-  });
-
-  it("Astro 自动切换端口后仍应允许本地跨域访问", async () => {
-    const req = createRequest("/healthz", {
       headers: { Origin: "http://localhost:4322" },
     });
     const res = await app.fetch(req, {
@@ -58,6 +43,21 @@ describe("GET / — 健康检查", () => {
 
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
       "http://localhost:4322",
+    );
+    expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+  });
+
+  it("Astro 自动切换端口后仍应允许本地跨域访问", async () => {
+    const req = createRequest("/healthz", {
+      headers: { Origin: "http://localhost:4323" },
+    });
+    const res = await app.fetch(req, {
+      ...env,
+      CORS_ORIGIN: "https://nami-blog.pages.dev",
+    } as any);
+
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "http://localhost:4323",
     );
   });
 

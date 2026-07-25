@@ -200,8 +200,8 @@ pnpm dev
 
 启动命令会自动执行本地 D1 migration，不需要单独运行数据库命令。
 
-- 前端：`http://localhost:4321`
-- 管理后台：`http://localhost:4321/admin/login`（`admin` / `nami-local-admin`）
+- 前端：`http://localhost:4322`
+- 管理后台：`http://localhost:4322/admin/login`（`admin` / `nami-local-admin`）
 - API：`http://localhost:8788`
 
 ### 常用命令
