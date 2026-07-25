@@ -11,9 +11,15 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
   <div id="friends-table" class="mt-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">加载中…</div>
 
   <!-- 弹窗 -->
-  <dialog id="modal" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-xl backdrop:bg-black/50">
-    <form id="friend-form" class="w-80 space-y-4">
-      <h3 id="modal-title" class="text-lg font-semibold">添加友链</h3>
+  <dialog id="modal" class="admin-dialog" aria-labelledby="modal-title">
+    <form id="friend-form" class="w-full space-y-5 p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]">Friend directory</p>
+          <h3 id="modal-title" class="mt-1 text-xl font-semibold">添加友链</h3>
+        </div>
+        <button type="button" data-modal-close class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-xl leading-none text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]" aria-label="关闭弹窗">×</button>
+      </div>
       <input type="hidden" id="edit-id" />
       <div>
         <label class="block text-sm font-medium">站名 *</label>
@@ -32,8 +38,8 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         <textarea id="description" rows="2" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"></textarea>
       </div>
       <div class="flex justify-end gap-2">
-        <button type="button" id="modal-cancel" class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm">取消</button>
-        <button type="submit" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm text-white">保存</button>
+        <button type="button" data-modal-close class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm transition hover:bg-[var(--color-bg-tertiary)]">取消</button>
+        <button type="submit" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-primary-hover)]">保存</button>
       </div>
     </form>
   </dialog>
@@ -83,15 +89,26 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
     const modal = document.getElementById("modal") as HTMLDialogElement;
     const form = document.getElementById("friend-form") as HTMLFormElement;
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+
+    function openModal() {
+      modal.showModal();
+      requestAnimationFrame(() => nameInput.focus());
+    }
 
     document.getElementById("btn-add")!.addEventListener("click", () => {
       (document.getElementById("modal-title") as HTMLElement).textContent = "添加友链";
       (document.getElementById("edit-id") as HTMLInputElement).value = "";
       form.reset();
-      modal.showModal();
+      openModal();
     });
 
-    document.getElementById("modal-cancel")!.addEventListener("click", () => modal.close());
+    modal.querySelectorAll<HTMLElement>("[data-modal-close]").forEach((button) => {
+      button.addEventListener("click", () => modal.close());
+    });
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) modal.close();
+    });
 
     document.addEventListener("click", async (e) => {
       const target = e.target as HTMLElement;
@@ -102,7 +119,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         (document.getElementById("url") as HTMLInputElement).value = target.dataset.editUrl!;
         (document.getElementById("avatar_url") as HTMLInputElement).value = target.dataset.editAvatar!;
         (document.getElementById("description") as HTMLTextAreaElement).value = target.dataset.editDesc!;
-        modal.showModal();
+        openModal();
       }
       if (target.dataset.action === "approve") {
         await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.id}/status`, {
