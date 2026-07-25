@@ -191,10 +191,10 @@ publicRoutes.get("/tags", async (c) => {
   return c.json({ data: tags.results });
 });
 
-// ── GET /friends — 友链列表（仅已通过审核的） ──
+// ── GET /friends — 友链列表 ──
 publicRoutes.get("/friends", async (c) => {
   const friends = await c.env.DB.prepare(
-    "SELECT id, name, url, avatar_url, description FROM friends WHERE status = 'approved' AND deleted_at IS NULL ORDER BY sort_order, created_at DESC",
+    "SELECT id, name, url, avatar_url, description FROM friends WHERE deleted_at IS NULL ORDER BY sort_order, created_at DESC",
   ).all();
 
   return c.json({ data: friends.results });

@@ -9,6 +9,12 @@ import {
   noPagesRebuildNeeded,
   triggerPagesRebuild,
 } from "../lib/pages-deploy";
+import {
+  exportSiteBackup,
+  importSiteBackup,
+  MAX_BACKUP_BYTES,
+  validateSiteBackup,
+} from "../lib/site-backup";
 
 export const adminRoutes = new Hono<Env>();
 
@@ -645,7 +651,7 @@ adminRoutes.delete("/comments/:id", async (c) => {
 // ═══════════════════════════════════════════
 adminRoutes.get("/friends", async (c) => {
   const friends = await c.env.DB.prepare(
-    "SELECT * FROM friends WHERE deleted_at IS NULL ORDER BY sort_order, created_at DESC",
+    "SELECT id, name, url, avatar_url, description, sort_order, created_at, updated_at FROM friends WHERE deleted_at IS NULL ORDER BY sort_order, created_at DESC",
   ).all();
 
   return c.json({ data: friends.results });
@@ -665,7 +671,7 @@ adminRoutes.post("/friends", async (c) => {
     );
 
   const result = await c.env.DB.prepare(
-    "INSERT INTO friends (name, url, avatar_url, description) VALUES (?, ?, ?, ?)",
+    "INSERT INTO friends (name, url, avatar_url, description, status) VALUES (?, ?, ?, ?, 'approved')",
   )
     .bind(
       body.name,
@@ -675,9 +681,8 @@ adminRoutes.post("/friends", async (c) => {
     )
     .run();
 
-  return c.json({
-    data: { id: result.meta.last_row_id, deployment: noPagesRebuildNeeded() },
-  });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { id: result.meta.last_row_id, deployment } });
 });
 
 adminRoutes.put("/friends/:id", async (c) => {
@@ -687,16 +692,7 @@ adminRoutes.put("/friends/:id", async (c) => {
     avatar_url?: string;
     description?: string;
   }>();
-  const existing = await c.env.DB.prepare(
-    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
-  )
-    .bind(c.req.param("id"))
-    .first<{ status: string }>();
-  if (!existing) {
-    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  }
-
-  await c.env.DB.prepare(
+  const result = await c.env.DB.prepare(
     "UPDATE friends SET name = COALESCE(?, name), url = COALESCE(?, url), avatar_url = COALESCE(?, avatar_url), description = COALESCE(?, description), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
     .bind(
@@ -708,22 +704,14 @@ adminRoutes.put("/friends/:id", async (c) => {
     )
     .run();
 
-  const deployment = existing.status === "approved"
-    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-    : noPagesRebuildNeeded();
+  if (result.meta.changes === 0) {
+    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
+  }
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
   return c.json({ data: { message: "更新成功", deployment } });
 });
 
 adminRoutes.delete("/friends/:id", async (c) => {
-  const existing = await c.env.DB.prepare(
-    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
-  )
-    .bind(c.req.param("id"))
-    .first<{ status: string }>();
-  if (!existing) {
-    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  }
-
   const result = await c.env.DB.prepare(
     "UPDATE friends SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
@@ -732,48 +720,75 @@ adminRoutes.delete("/friends/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  const deployment = existing.status === "approved"
-    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-    : noPagesRebuildNeeded();
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
   return c.json({ data: { message: "友链已删除", deployment } });
 });
 
-adminRoutes.patch("/friends/:id/status", async (c) => {
-  const body = await c.req.json<{ status?: string }>();
-  if (!body.status || !["approved", "rejected"].includes(body.status)) {
+// ═══════════════════════════════════════════
+// Site backup
+// ═══════════════════════════════════════════
+adminRoutes.get("/backup", async (c) => {
+  const backup = await exportSiteBackup(c.env.DB);
+  const date = backup.exported_at.slice(0, 10);
+  c.header("Cache-Control", "no-store");
+  c.header(
+    "Content-Disposition",
+    `attachment; filename="nami-blog-backup-${date}.json"`,
+  );
+  return c.json(backup);
+});
+
+adminRoutes.post("/backup/import", async (c) => {
+  const contentLength = Number(c.req.header("Content-Length") || 0);
+  if (contentLength > MAX_BACKUP_BYTES) {
+    return c.json(
+      { error: { code: "PAYLOAD_TOO_LARGE", message: "备份文件不能超过 10MB" } },
+      413,
+    );
+  }
+
+  const raw = await c.req.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_BACKUP_BYTES) {
+    return c.json(
+      { error: { code: "PAYLOAD_TOO_LARGE", message: "备份文件不能超过 10MB" } },
+      413,
+    );
+  }
+
+  let input: unknown;
+  try {
+    input = JSON.parse(raw);
+  } catch {
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "备份文件不是有效 JSON" } },
+      400,
+    );
+  }
+
+  const validation = validateSiteBackup(input);
+  if (!validation.backup) {
     return c.json(
       {
         error: {
           code: "BAD_REQUEST",
-          message: "status 必须为 approved 或 rejected",
+          message: validation.error || "备份文件格式无效",
         },
       },
       400,
     );
   }
 
-  const existing = await c.env.DB.prepare(
-    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
-  )
-    .bind(c.req.param("id"))
-    .first<{ status: string }>();
-  if (!existing) {
-    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
+  const adminId = Number(c.get("user").sub);
+  if (!Number.isInteger(adminId) || adminId <= 0) {
+    return c.json(
+      { error: { code: "UNAUTHORIZED", message: "管理员身份无效" } },
+      401,
+    );
   }
 
-  const result = await c.env.DB.prepare(
-    "UPDATE friends SET status = ?, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
-  )
-    .bind(body.status, c.req.param("id"))
-    .run();
-
-  if (result.meta.changes === 0)
-    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  const deployment =
-    existing.status === "approved" || body.status === "approved"
-      ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-      : noPagesRebuildNeeded();
-  return c.json({ data: { message: "状态已更新", deployment } });
+  await importSiteBackup(c.env.DB, validation.backup, adminId);
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "备份已导入", deployment } });
 });
 
 // ═══════════════════════════════════════════

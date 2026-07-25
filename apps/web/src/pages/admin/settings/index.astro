@@ -12,7 +12,10 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       adminFetch,
       clearAdminSession,
     } from "@/lib/admin-session";
-    import { getPagesDeployNotice } from "@/lib/pages-deployment";
+    import {
+      getPagesDeployNotice,
+      rememberPagesDeployStatus,
+    } from "@/lib/pages-deployment";
 
     let selectedTheme: ThemeId = DEFAULT_THEME;
     let isDarkMode = false;
@@ -101,6 +104,25 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
               </div>
             </section>
             <section>
+              <h2 class="mb-4 text-lg font-semibold">网站数据备份</h2>
+              <div class="space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6">
+                <div>
+                  <p class="text-sm leading-6 text-[var(--color-text-secondary)]">导出文章、分类、标签、评论、友链和站点设置。管理员密码、登录令牌、访问 IP 和日志不会进入备份。</p>
+                  <p class="mt-1 text-xs leading-5 text-[var(--color-text-tertiary)]">仓库中的图片由 Git 管理，不包含在此 JSON 数据备份中。</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button type="button" id="btn-export-backup" class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">导出备份</button>
+                  <label class="cursor-pointer rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+                    选择备份文件
+                    <input type="file" id="backup-file" accept="application/json,.json" class="hidden" />
+                  </label>
+                  <button type="button" id="btn-import-backup" disabled class="rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40">导入并替换现有数据</button>
+                </div>
+                <p id="backup-file-name" class="text-xs text-[var(--color-text-tertiary)]">尚未选择文件</p>
+                <p id="backup-status" class="text-sm text-[var(--color-text-secondary)]" aria-live="polite"></p>
+              </div>
+            </section>
+            <section>
               <h2 class="mb-4 text-lg font-semibold">修改密码</h2>
               <div id="password-form-wrap" class="space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6">
                 <div><label class="block text-sm font-medium">当前密码</label><input type="password" name="old_password" autocomplete="current-password" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" /></div>
@@ -128,6 +150,87 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
     function bindEvents() {
       const form = document.getElementById("settings-form") as HTMLFormElement;
       const statusEl = document.getElementById("save-status") as HTMLDivElement;
+
+      const backupFile = document.getElementById("backup-file") as HTMLInputElement;
+      const backupFileName = document.getElementById("backup-file-name")!;
+      const backupStatus = document.getElementById("backup-status")!;
+      const exportBackup = document.getElementById("btn-export-backup") as HTMLButtonElement;
+      const importBackup = document.getElementById("btn-import-backup") as HTMLButtonElement;
+
+      backupFile.addEventListener("change", () => {
+        const file = backupFile.files?.[0];
+        backupFileName.textContent = file ? `已选择：${file.name}` : "尚未选择文件";
+        importBackup.disabled = !file;
+        backupStatus.textContent = "";
+      });
+
+      exportBackup.addEventListener("click", async () => {
+        exportBackup.disabled = true;
+        backupStatus.textContent = "正在整理备份…";
+        backupStatus.style.color = "var(--color-text-secondary)";
+        try {
+          const response = await adminFetch(`${API_BASE}/api/admin/backup`);
+          if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error?.message || "导出失败");
+          }
+          const blob = await response.blob();
+          const fallbackName = `nami-blog-backup-${new Date().toISOString().slice(0, 10)}.json`;
+          const disposition = response.headers.get("Content-Disposition") || "";
+          const filename = disposition.match(/filename="([^"]+)"/)?.[1] || fallbackName;
+          const href = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = href;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(href);
+          backupStatus.textContent = "备份已下载，请妥善保存。";
+          backupStatus.style.color = "var(--color-success)";
+        } catch (error) {
+          backupStatus.textContent = error instanceof Error ? error.message : "导出失败";
+          backupStatus.style.color = "var(--color-danger)";
+        } finally {
+          exportBackup.disabled = false;
+        }
+      });
+
+      importBackup.addEventListener("click", async () => {
+        const file = backupFile.files?.[0];
+        if (!file) return;
+        if (file.size > 10_000_000) {
+          backupStatus.textContent = "备份文件不能超过 10MB。";
+          backupStatus.style.color = "var(--color-danger)";
+          return;
+        }
+        if (!confirm("导入会替换当前文章、分类、标签、评论、友链和站点设置。管理员账号不会改变。确认继续？")) return;
+
+        importBackup.disabled = true;
+        backupStatus.textContent = "正在校验并恢复数据，请不要关闭页面…";
+        backupStatus.style.color = "var(--color-text-secondary)";
+        try {
+          const text = await file.text();
+          JSON.parse(text);
+          const response = await adminFetch(`${API_BASE}/api/admin/backup/import`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: text,
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error?.message || "导入失败");
+          rememberPagesDeployStatus(result.data?.deployment?.status);
+          backupStatus.textContent = "导入成功，正在刷新后台…";
+          backupStatus.style.color = "var(--color-success)";
+          setTimeout(() => location.reload(), 800);
+        } catch (error) {
+          backupStatus.textContent = error instanceof SyntaxError
+            ? "所选文件不是有效的 JSON 备份。"
+            : error instanceof Error ? error.message : "导入失败";
+          backupStatus.style.color = "var(--color-danger)";
+          importBackup.disabled = false;
+        }
+      });
 
       // 修改密码
       document.getElementById("btn-change-pw")?.addEventListener("click", async () => {

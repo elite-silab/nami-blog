@@ -8,8 +8,8 @@ Nami 前台保持 Astro SSG 的静态性能，但管理员不应在每次发布�
 
 - Pages 项目创建指向 `main` 的 Deploy Hook。
 - Hook URL 作为 Workers Secret `PAGES_DEPLOY_HOOK_URL` 保存，不写入 GitHub、Pages 变量或浏览器代码。
-- 已鉴权的 Worker 在公开文章、分类、标签、已通过友链或站点设置变更后调用 Hook。
-- 草稿、非公开文章、待审核友链和运行时读取的评论不触发重建。
+- 已鉴权的 Worker 在公开文章、分类、标签、友链、站点设置或数据备份导入后调用 Hook。
+- 草稿、非公开文章和运行时读取的评论不触发重建。
 - Hook 结果只返回 `queued`、`not_configured`、`failed` 或 `not_needed`，不返回 Secret URL。
 - 文章或设置已成功写入 D1 后，Hook 失败不回滚数据；后台显示可操作的失败提示。
 
@@ -20,6 +20,6 @@ Pages 构建请求会附加每次构建唯一的查询参数，避免读到发�
 ## 验收
 
 - 发布、修改或删除公开文章会请求 Deploy Hook。
-- 修改分类、标签、已审核友链或站点设置会请求 Deploy Hook。
+- 修改分类、标签、友链、站点设置或导入备份会请求 Deploy Hook。
 - 后台明确展示前台正在更新、尚未配置或触发失败。
 - `/blog/` 使用 API 允许的分页上限，可正常显示已发布文章。

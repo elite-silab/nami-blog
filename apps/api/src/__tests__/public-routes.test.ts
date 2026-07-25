@@ -226,12 +226,14 @@ describe("GET /api/v1/tags — 标签列表", () => {
 });
 
 describe("GET /api/v1/friends — 友链列表", () => {
-  it("应仅返回已批准的友链", async () => {
+  it("应返回全部未删除友链，不再要求审核", async () => {
     const res = await apiFetch("/api/v1/friends");
     expect(res.status).toBe(200);
     const json = (await res.json()) as any;
-    expect(json.data.length).toBe(1);
-    expect(json.data[0].name).toBe("测试友链");
+    expect(json.data.length).toBe(2);
+    expect(json.data.map((friend: any) => friend.name)).toEqual(
+      expect.arrayContaining(["测试友链", "待审核友链"]),
+    );
     expect(json.data[0].status).toBeUndefined(); // 不返回 status 字段
   });
 });

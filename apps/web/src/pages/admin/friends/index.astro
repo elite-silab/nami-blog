@@ -48,9 +48,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
     import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
     import { rememberPagesDeployStatus } from "@/lib/pages-deployment";
 
-    const statusLabels: Record<string, string> = { pending: "待审核", approved: "已通过", rejected: "已拒绝" };
-    const statusColors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-700", approved: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-700" };
-
     function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
     async function loadFriends() {
@@ -67,17 +64,14 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
         table.innerHTML = `<div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
           <table class="w-full text-sm"><thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-            <tr><th class="px-4 py-3 text-left font-medium">站点</th><th class="px-4 py-3 text-left font-medium">URL</th><th class="px-4 py-3 text-left font-medium">描述</th><th class="px-4 py-3 text-center font-medium">状态</th><th class="px-4 py-3 text-center font-medium">排序</th><th class="px-4 py-3 text-center font-medium">链接检查</th><th class="px-4 py-3 text-right font-medium">操作</th></tr>
+            <tr><th class="px-4 py-3 text-left font-medium">站点</th><th class="px-4 py-3 text-left font-medium">URL</th><th class="px-4 py-3 text-left font-medium">描述</th><th class="px-4 py-3 text-center font-medium">排序</th><th class="px-4 py-3 text-right font-medium">操作</th></tr>
           </thead><tbody class="divide-y divide-[var(--color-border)]">
             ${data.map((f: any) => `<tr class="hover:bg-[var(--color-bg-secondary)]">
               <td class="px-4 py-3"><div class="flex items-center gap-2">${f.avatar_url ? `<img src="${esc(f.avatar_url)}" alt="" class="h-6 w-6 rounded-full" />` : ""}<span class="font-medium">${esc(f.name)}</span></div></td>
               <td class="px-4 py-3"><a href="${esc(f.url)}" target="_blank" rel="noopener" class="text-[var(--color-primary)] hover:underline">${esc(f.url)}</a></td>
-              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${f.description || "—"}</td>
-              <td class="px-4 py-3 text-center"><span class="rounded-full px-2 py-0.5 text-xs ${statusColors[f.status] || ""}">${statusLabels[f.status] || f.status}</span></td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${esc(f.description || "—")}</td>
               <td class="px-4 py-3 text-center">${f.sort_order}</td>
-              <td class="px-4 py-3 text-center">${f.check_url_ok == null ? "—" : f.check_url_ok === 1 ? '<span class="text-[var(--color-success)]">OK</span>' : '<span class="text-[var(--color-danger)]">FAIL</span>'}</td>
               <td class="px-4 py-3 text-right"><div class="flex items-center justify-end gap-2">
-                ${f.status === "pending" ? `<button data-action="approve" data-id="${f.id}" class="text-[var(--color-success)] hover:underline">通过</button>` : ""}
                 <button data-edit-id="${f.id}" data-edit-name="${esc(f.name)}" data-edit-url="${esc(f.url)}" data-edit-avatar="${esc(f.avatar_url || "")}" data-edit-desc="${esc(f.description || "")}" class="text-[var(--color-primary)] hover:underline">编辑</button>
                 <button data-delete-id="${f.id}" data-delete-name="${esc(f.name)}" class="text-[var(--color-danger)] hover:underline">删除</button>
               </div></td>
@@ -121,16 +115,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         (document.getElementById("avatar_url") as HTMLInputElement).value = target.dataset.editAvatar!;
         (document.getElementById("description") as HTMLTextAreaElement).value = target.dataset.editDesc!;
         openModal();
-      }
-      if (target.dataset.action === "approve") {
-        const response = await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.id}/status`, {
-          method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ status: "approved" }),
-        });
-        const result = await response.json();
-        if (!response.ok) { alert(result.error?.message || "操作失败"); return; }
-        rememberPagesDeployStatus(result.data?.deployment?.status);
-        location.reload();
       }
       if (target.dataset.deleteId) {
         if (!confirm(`确认删除友链「${target.dataset.deleteName}」？`)) return;

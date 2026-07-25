@@ -1,6 +1,7 @@
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
 import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
+import { RSS_NAMESPACES } from "@/lib/rss";
 
 export async function GET(context: APIContext) {
   const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
@@ -47,6 +48,7 @@ export async function GET(context: APIContext) {
     title: "Nami Blog",
     description: "记录技术与生活",
     site: context.site?.toString() || "https://example.com",
+    xmlns: RSS_NAMESPACES,
     items: detailPosts.map((post) => ({
       title: post.title,
       pubDate: new Date(post.published_at || post.created_at),

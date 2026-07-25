@@ -47,6 +47,7 @@
 - 🔐 **可轮换 JWT 会话** — HttpOnly Cookie + 标签页令牌回退
 - 📱 **响应式交互** — 阅读进度条、TOC 目录、代码块复制、移动端汉堡菜单
 - 📡 **RSS + SEO** — RSS 订阅、Open Graph、Twitter Card、JSON-LD 结构化数据
+- 💾 **可视化备份** — 后台一键导出或导入内容数据，无需 Wrangler 命令
 - 🩺 **健康检查** — `/healthz` 端点、统一错误响应、公开 API 缓存策略
 - ☁️ **Cloudflare 原生** — Workers + D1 + Pages，零服务器运维，全球边缘加速
 
@@ -86,7 +87,7 @@
 | 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                |
 | 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header             |
 | Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared` |
-| 测试     | **Vitest**                | 103 个测试用例，含 Workers 集成测试         |
+| 测试     | **Vitest**                | 109 个测试用例，含 Workers 集成测试         |
 
 ## 🚀 快速开始
 
@@ -235,7 +236,7 @@ pnpm dev
 ```bash
 pnpm dev              # 启动 API + Web
 pnpm build            # 构建
-pnpm test             # 运行测试（103 tests）
+pnpm test             # 运行测试（109 tests）
 pnpm typecheck        # 类型检查
 pnpm lint             # ESLint
 pnpm db:migrate       # 高级：手动执行本地 D1 迁移
@@ -288,7 +289,7 @@ migrations/       # D1 数据库迁移 SQL
 ## 🧪 质量
 
 ```bash
-pnpm test        # Vitest 103 个用例
+pnpm test        # Vitest 109 个用例
 pnpm typecheck   # TypeScript 类型检查
 pnpm lint        # ESLint
 pnpm build       # 全量构建
