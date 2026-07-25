@@ -17,7 +17,7 @@
 
 README 和 Cloudflare 指南统一采用 Dashboard/Git 集成部署：Workers 设置三个 Secret，Pages 和 CORS 地址始终复制 Cloudflare 实际显示的 URL，不拼接用户名。Workers 部署命令删除不存在的 shared build，Pages 只构建 Web。生产登录使用用户自己设置的一次性密码，不再公开固定密码。
 
-本地开发继续只需在编辑器复制根目录 `.env.example`，执行 `pnpm install` 和 `pnpm dev`；`predev` 自动完成 D1 migration。默认 Web URL 统一为 `http://localhost:4322`。
+本地开发使用 `pnpm install && cp .env.example .env` 安装依赖并创建配置，再执行 `pnpm dev`；`predev` 自动完成 D1 migration。默认 Web URL 统一为 `http://localhost:4322`。
 
 ## 验证
 

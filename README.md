@@ -189,16 +189,11 @@ Commit 后自动重新部署。
 
 ```bash
 git clone https://github.com/你的用户名/nami-blog.git && cd nami-blog
-pnpm install
-```
-
-在编辑器文件树中复制根目录 `.env.example`，把副本重命名为 `.env`；本地默认配置无需修改。然后运行：
-
-```bash
+pnpm install && cp .env.example .env
 pnpm dev
 ```
 
-启动命令会自动执行本地 D1 migration，不需要单独运行数据库命令。
+`.env.example` 提供可直接运行的本地默认值；需要自定义时直接编辑生成的 `.env`。上面的复制命令只需在首次安装时执行，已有 `.env` 时不要重复执行，以免覆盖自己的配置。`pnpm dev` 会自动执行本地 D1 migration，不需要单独运行数据库命令。
 
 - 前端：`http://localhost:4322`
 - 管理后台：`http://localhost:4322/admin/login`（`admin` / `nami-local-admin`）
