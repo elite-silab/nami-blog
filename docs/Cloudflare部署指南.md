@@ -3,10 +3,10 @@
 本文档手把手教你把 Nami Blog 部署到 Cloudflare，**不需要域名、不需要花钱**。
 部署完成后你会获得两个免费地址：
 
-| 服务 | 免费地址 |
-|---|---|
-| API | `https://nami-blog-api.你的用户名.workers.dev` |
-| 前端 | `https://nami-blog.你的用户名.pages.dev` |
+| 服务 | 免费地址                                       |
+| ---- | ---------------------------------------------- |
+| API  | `https://nami-blog-api.你的用户名.workers.dev` |
+| 前端 | `https://nami-blog.你的用户名.pages.dev`       |
 
 ---
 
@@ -95,10 +95,10 @@ Published nami-blog-api
 
 点击 **Add variable**，添加两个 Secret：
 
-| Type | Name | Value |
-|---|---|---|
-| Secret | `JWT_SECRET` | 随机生成一个长字符串（见下方） |
-| Secret | `JWT_REFRESH_SECRET` | 随机生成另一个长字符串 |
+| Type   | Name                 | Value                          |
+| ------ | -------------------- | ------------------------------ |
+| Secret | `JWT_SECRET`         | 随机生成一个长字符串（见下方） |
+| Secret | `JWT_REFRESH_SECRET` | 随机生成另一个长字符串         |
 
 生成随机字符串的方法（在终端执行）：
 
@@ -110,8 +110,8 @@ openssl rand -hex 32
 
 然后添加一个普通变量：
 
-| Type | Name | Value |
-|---|---|---|
+| Type      | Name          | Value                                    |
+| --------- | ------------- | ---------------------------------------- |
 | Plaintext | `CORS_ORIGIN` | `https://nami-blog.你的用户名.pages.dev` |
 
 > 💡 把 `你的用户名` 替换成你 Cloudflare 账号的实际用户名。
@@ -197,9 +197,9 @@ pnpm exec wrangler pages deploy apps/web/dist --project-name=nami-blog
 
 添加两个：
 
-| Name | Value |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | 第一步复制的 Token |
+| Name                    | Value                   |
+| ----------------------- | ----------------------- |
+| `CLOUDFLARE_API_TOKEN`  | 第一步复制的 Token      |
 | `CLOUDFLARE_ACCOUNT_ID` | 第二步复制的 Account ID |
 
 ### 4. 完成

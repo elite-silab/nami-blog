@@ -176,15 +176,15 @@ cd apps/api && wrangler deploy
 
 添加两个 **Secret**：
 
-| Name | Value |
-|---|---|
-| `JWT_SECRET` | 运行 `openssl rand -hex 32` 生成 |
+| Name                 | Value                                  |
+| -------------------- | -------------------------------------- |
+| `JWT_SECRET`         | 运行 `openssl rand -hex 32` 生成       |
 | `JWT_REFRESH_SECRET` | 再运行一次 `openssl rand -hex 32` 生成 |
 
 添加一个 **Plaintext** 变量：
 
-| Name | Value |
-|---|---|
+| Name          | Value                         |
+| ------------- | ----------------------------- |
 | `CORS_ORIGIN` | `https://nami-blog.pages.dev` |
 
 ### 第七步：创建管理员账号
@@ -199,19 +199,19 @@ cd ../.. && pnpm db:seed -- --remote
 2. 选择你 Fork 的 `nami-blog` 仓库
 3. 填写配置：
 
-| 配置项 | 值 |
-|---|---|
-| Project name | `nami-blog` |
-| Production branch | `main` |
-| Build command | `pnpm --filter @nami/web build` |
-| Build output directory | `apps/web/dist` |
+| 配置项                 | 值                              |
+| ---------------------- | ------------------------------- |
+| Project name           | `nami-blog`                     |
+| Production branch      | `main`                          |
+| Build command          | `pnpm --filter @nami/web build` |
+| Build output directory | `apps/web/dist`                 |
 
 4. 点击 **Environment variables**，添加：
 
-| 变量 | 值 |
-|---|---|
+| 变量             | 值                                             |
+| ---------------- | ---------------------------------------------- |
 | `PUBLIC_API_URL` | `https://nami-blog-api.你的用户名.workers.dev` |
-| `SITE_URL` | `https://nami-blog.pages.dev` |
+| `SITE_URL`       | `https://nami-blog.pages.dev`                  |
 
 5. 点击 **Save and Deploy** ☕
 
