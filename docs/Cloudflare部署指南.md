@@ -78,22 +78,26 @@ CORS_ORIGIN = "https://nami-blog.pages.dev"
 | Build command | `pnpm --filter @nami/web build` |
 | Build output directory | `apps/web/dist` |
 
-添加 Pages 环境变量：
+> 如果你只看到 **Deploy command**，没有 **Build output directory**，说明当前是 Workers 导入 Git 页面。返回创建入口，选择 **Pages → Connect to Git**。如果看到上传文件区域，则进入了 Direct Upload，也需要返回选择 Git 集成。
+
+首次部署只添加一个 Pages 环境变量：
 
 | 名称 | 值 |
 | ---- | -- |
 | `PUBLIC_API_URL` | 第三步复制的完整 Worker 地址 |
-| `SITE_URL` | Pages 项目预计地址，例如 `https://nami-blog.pages.dev` |
 
-Pages 中不要填写 JWT 或管理员密码。点击 **Save and Deploy**，完成后复制 Cloudflare 实际显示的 Pages 地址。
+此时还没有最终 Pages 地址，`SITE_URL` 先留空。Pages 中也不要填写 JWT 或管理员密码。点击 **Save and Deploy**，完成后复制 Cloudflare 实际显示的 Pages 地址。
 
 ## 第六步：回填真实 Pages 地址
 
-如果实际 Pages 地址与 `https://nami-blog.pages.dev` 不同：
+第一次部署成功后必须完成：
 
-1. 在 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成实际 Pages 地址。
-2. 在 Pages Settings 中将 `SITE_URL` 改成同一个实际地址。
-3. 保存 GitHub 提交后，Workers Git 集成会自动重新部署；Pages 变量修改后也重新部署一次。
+1. 复制实际 Pages 地址，例如 `https://nami-blog.pages.dev`。
+2. 在 Pages **Settings → Environment variables** 新增 `SITE_URL`，填写完整 Pages 地址，然后重新部署 Pages。
+3. 在 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个 Pages 地址并提交。
+4. Workers Git 集成自动重新部署后，再开始登录测试。
+
+第一次 Pages 部署只是为了获得真实地址；第二次部署会用 `SITE_URL` 生成正确的 SEO、Sitemap 和分享链接。
 
 ## 第七步：首次登录管理员
 

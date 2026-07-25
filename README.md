@@ -151,24 +151,28 @@ Workers & Pages → Create → **Pages** → **Connect to Git** → 选你 Fork 
 | Build command          | `pnpm --filter @nami/web build` |
 | Build output directory | `apps/web/dist`                 |
 
-Environment variables 添加：
+> 如果页面只有 **Deploy command** 而没有 **Build output directory**，说明进入了 Workers 创建流程；请返回并选择 **Pages → Connect to Git**。
+
+首次部署只添加一个 Environment variable：
 
 | 变量             | 值                                                                        |
 | ---------------- | ------------------------------------------------------------------------- |
 | `PUBLIC_API_URL` | 第四步复制的完整 Worker 地址，例如 `https://nami-blog-api.xxx.workers.dev` |
-| `SITE_URL`       | Pages 项目显示的完整地址，例如 `https://nami-blog.pages.dev`             |
 
-点 **Save and Deploy** ☕
+此时还没有最终 Pages 地址，`SITE_URL` 先不要填写。点 **Save and Deploy** 完成第一次部署 ☕
 
 ### 第六步：回填地址
 
-部署完成后，复制 Cloudflare 显示的实际 Pages 地址。回 GitHub 再编辑 `wrangler.toml`，补上这个地址：
+部署完成后复制 Cloudflare 显示的实际 Pages 地址，例如 `https://nami-blog.pages.dev`，然后完成两处回填：
+
+1. 进入 Pages **Settings → Environment variables**，新增 `SITE_URL`，值为刚复制的完整地址，然后重新部署 Pages。
+2. 回 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个地址：
 
 ```toml
 CORS_ORIGIN = "https://nami-blog.pages.dev"
 ```
 
-Commit 后自动重新部署。
+Commit 后 Workers Git 集成会自动重新部署。两边都完成后，SEO、Sitemap 和浏览器跨域地址才会一致。
 
 ### 第七步：登录
 
