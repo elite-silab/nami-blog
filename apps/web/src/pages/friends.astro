@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
 
@@ -13,12 +14,12 @@ interface Friend {
 
 let friends: Friend[] = [];
 try {
-  const res = await fetch(`${apiUrl}/api/v1/friends`);
+  const res = await fetchBuildApi(apiUrl, "/api/v1/friends");
   if (res.ok) {
     const json = await res.json();
     friends = json.data || [];
   }
-} catch {}
+} catch (error) { handleBuildApiError("友链", error); }
 ---
 
 <BaseLayout title="友情链接 — Nami Blog" description="Nami Blog 的朋友们">

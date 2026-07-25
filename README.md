@@ -86,7 +86,7 @@
 | 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                |
 | 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header             |
 | Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared` |
-| 测试     | **Vitest**                | 89 个测试用例，含 Workers 集成测试          |
+| 测试     | **Vitest**                | 96 个测试用例，含 Workers 集成测试          |
 
 ## 🚀 快速开始
 
@@ -188,7 +188,20 @@ CORS_ORIGIN = "https://blog.example.com"
 
 `SITE_URL` 用于生成 SEO 标准链接、Sitemap、RSS 和分享链接；`CORS_ORIGIN` 用于允许该前端访问 API。两者必须指向实际对外使用的同一个前端域名，不要带页面路径，也不要在末尾加 `/`。Commit 后 Workers 会自动重新部署。
 
-### 第七步：登录
+### 第七步：开启内容自动更新
+
+Nami 的前台是静态页面。为了让发布文章、修改分类或保存站点设置后自动更新前台，需要配置一次 Pages Deploy Hook：
+
+1. 进入 Pages 项目 **Settings → Builds & deployments → Deploy hooks**。
+2. 点击 **Add deploy hook**，名称填写 `Nami Publish`，分支选择 `main`。
+3. 创建后复制 Cloudflare 生成的 Hook URL。
+4. 进入 Worker 项目 **Settings → Variables and Secrets**。
+5. 新建 Secret，名称填写 `PAGES_DEPLOY_HOOK_URL`，值粘贴刚复制的 Hook URL，然后保存。
+6. 重新部署一次 Worker，让新 Secret 生效。
+
+Hook URL 相当于部署密码，只放在 Worker Secret 中，不要写进 GitHub、Pages 环境变量或截图。配置完成后，后台发布公开文章或保存公开设置时会提示“前台正在自动更新”，通常等待 1–2 分钟即可看到结果；草稿和非公开文章不会触发部署。
+
+### 第八步：登录
 
 打开实际 Pages 地址后加 `/admin/login`，例如 `https://nami-blog.pages.dev/admin/login`。
 
@@ -201,7 +214,7 @@ CORS_ORIGIN = "https://blog.example.com"
 
 ### ✅ 完成
 
-以后每次 push 到 `main`，API 和前端都会自动重新部署！
+以后每次 push 到 `main`，API 和前端都会自动重新部署；在后台发布公开内容也会自动重建前台，不需要再进入 Cloudflare 手动点击重新部署。
 
 ## 💻 本地开发
 
@@ -222,7 +235,7 @@ pnpm dev
 ```bash
 pnpm dev              # 启动 API + Web
 pnpm build            # 构建
-pnpm test             # 运行测试 (89 tests)
+pnpm test             # 运行测试（96 tests）
 pnpm typecheck        # 类型检查
 pnpm lint             # ESLint
 pnpm db:migrate       # 高级：手动执行本地 D1 迁移
@@ -275,7 +288,7 @@ migrations/       # D1 数据库迁移 SQL
 ## 🧪 质量
 
 ```bash
-pnpm test        # Vitest 89 个用例
+pnpm test        # Vitest 96 个用例
 pnpm typecheck   # TypeScript 类型检查
 pnpm lint        # ESLint
 pnpm build       # 全量构建

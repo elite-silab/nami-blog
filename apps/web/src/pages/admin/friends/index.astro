@@ -46,6 +46,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
   <script>
     import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+    import { rememberPagesDeployStatus } from "@/lib/pages-deployment";
 
     const statusLabels: Record<string, string> = { pending: "待审核", approved: "已通过", rejected: "已拒绝" };
     const statusColors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-700", approved: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-700" };
@@ -122,15 +123,22 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         openModal();
       }
       if (target.dataset.action === "approve") {
-        await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.id}/status`, {
+        const response = await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.id}/status`, {
           method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ status: "approved" }),
-        }).then((r) => r.ok ? location.reload() : alert("操作失败"));
+        });
+        const result = await response.json();
+        if (!response.ok) { alert(result.error?.message || "操作失败"); return; }
+        rememberPagesDeployStatus(result.data?.deployment?.status);
+        location.reload();
       }
       if (target.dataset.deleteId) {
         if (!confirm(`确认删除友链「${target.dataset.deleteName}」？`)) return;
-        adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.deleteId}`, { method: "DELETE" })
-          .then((r) => r.ok ? location.reload() : alert("删除失败"));
+        const response = await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.deleteId}`, { method: "DELETE" });
+        const result = await response.json();
+        if (!response.ok) { alert(result.error?.message || "删除失败"); return; }
+        rememberPagesDeployStatus(result.data?.deployment?.status);
+        location.reload();
       }
     });
 
@@ -146,8 +154,13 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       const url = editId ? `${API_BASE}/api/admin/friends/${editId}` : `${API_BASE}/api/admin/friends`;
       const method = editId ? "PUT" : "POST";
       const res = await adminFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      if (res.ok) { modal.close(); location.reload(); }
-      else { const err = await res.json(); alert(err.error?.message || "保存失败"); }
+      const result = await res.json();
+      if (res.ok) {
+        rememberPagesDeployStatus(result.data?.deployment?.status);
+        modal.close();
+        location.reload();
+      }
+      else { alert(result.error?.message || "保存失败"); }
     });
 
     loadFriends();

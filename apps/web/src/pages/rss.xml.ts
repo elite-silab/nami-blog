@@ -1,5 +1,6 @@
 import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 export async function GET(context: APIContext) {
   const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
@@ -14,20 +15,20 @@ export async function GET(context: APIContext) {
   }> = [];
 
   try {
-    const res = await fetch(`${apiUrl}/api/v1/posts?limit=50`);
+    const res = await fetchBuildApi(apiUrl, "/api/v1/posts?limit=50");
     if (res.ok) {
       const json = await res.json();
       posts = json.data || [];
     }
-  } catch {
-    // API 不可用时返回空
+  } catch (error) {
+    handleBuildApiError("RSS 文章列表", error);
   }
 
   // 获取每篇文章的详情（content_html）
   const detailPosts = await Promise.all(
     posts.map(async (p) => {
       try {
-        const res = await fetch(`${apiUrl}/api/v1/posts/${p.slug}`);
+        const res = await fetchBuildApi(apiUrl, `/api/v1/posts/${p.slug}`);
         if (res.ok) {
           const json = await res.json();
           return {
@@ -35,8 +36,8 @@ export async function GET(context: APIContext) {
             content_html: json.data?.content_html || p.content_html,
           };
         }
-      } catch {
-        /* ignore */
+      } catch (error) {
+        handleBuildApiError(`RSS 文章 ${p.slug}`, error);
       }
       return p;
     }),

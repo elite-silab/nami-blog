@@ -1,18 +1,19 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import CommentSection from "@/components/CommentSection.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 export async function getStaticPaths() {
   const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
   let posts: Array<{ slug: string }> = [];
   try {
-    const res = await fetch(`${apiUrl}/api/v1/posts?limit=100`);
+    const res = await fetchBuildApi(apiUrl, "/api/v1/posts?limit=100");
     if (res.ok) {
       const json = await res.json();
       posts = json.data || [];
     }
-  } catch {
-    // API 不可用时返回空路径
+  } catch (error) {
+    handleBuildApiError("文章详情路径", error);
   }
   return posts.map((post) => ({ params: { slug: post.slug } }));
 }
@@ -42,12 +43,12 @@ interface PostData {
 let post: PostData | null = null;
 
 try {
-  const res = await fetch(`${API_BASE}/api/v1/posts/${slug}`);
+  const res = await fetchBuildApi(API_BASE, `/api/v1/posts/${slug}`);
   if (res.ok) {
     const json = await res.json();
     post = json.data;
   }
-} catch { /* ignore */ }
+} catch (error) { handleBuildApiError(`文章详情 ${slug}`, error); }
 
 if (!post) {
   return new Response(null, { status: 404 });

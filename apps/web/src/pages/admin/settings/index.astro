@@ -12,6 +12,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       adminFetch,
       clearAdminSession,
     } from "@/lib/admin-session";
+    import { getPagesDeployNotice } from "@/lib/pages-deployment";
 
     let selectedTheme: ThemeId = DEFAULT_THEME;
     let isDarkMode = false;
@@ -230,15 +231,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
           } else if (!isSelected && existingCheck) { existingCheck.remove(); }
         });
         if (themeStatus) {
-          themeStatus.textContent = "主题预览中，正在保存…";
-          try {
-            const res = await adminFetch(`${API_BASE}/api/admin/settings`, {
-              method: "PUT", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ site_theme: themeId }),
-            });
-            themeStatus.textContent = res.ok ? "✓ 已切换并保存主题" : "保存失败";
-          } catch { themeStatus.textContent = "预览已生效，但保存失败"; }
-          setTimeout(() => { if (themeStatus) themeStatus.textContent = ""; }, 3000);
+          themeStatus.textContent = "主题预览中，点击下方「保存设置」后更新前台。";
         }
       });
 
@@ -262,7 +255,16 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (res.ok) { statusEl.textContent = "已保存"; statusEl.style.color = "var(--color-success)"; setTimeout(() => { statusEl.textContent = ""; }, 3000); }
+          const result = await res.json();
+          if (res.ok) {
+            const deployNotice = getPagesDeployNotice(result.data?.deployment?.status);
+            statusEl.textContent = deployNotice?.message || "已保存";
+            statusEl.style.color = deployNotice?.kind === "error"
+              ? "var(--color-danger)"
+              : deployNotice?.kind === "warning"
+                ? "var(--color-warning)"
+                : "var(--color-success)";
+          }
           else { statusEl.textContent = "保存失败"; statusEl.style.color = "var(--color-danger)"; }
         } catch { statusEl.textContent = "保存失败"; statusEl.style.color = "var(--color-danger)"; }
       });

@@ -38,7 +38,10 @@ describe("管理端文章写作流程", () => {
       }),
     });
     expect(create.status).toBe(200);
-    const created = (await create.json()) as { data: { id: number } };
+    const created = (await create.json()) as {
+      data: { id: number; deployment: { status: string } };
+    };
+    expect(created.data.deployment.status).toBe("not_needed");
 
     const update = await apiFetch(`/api/admin/posts/${created.data.id}`, {
       method: "PUT",
@@ -85,5 +88,28 @@ describe("管理端文章写作流程", () => {
     expect(response.status).toBe(409);
     const result = (await response.json()) as { error: { code: string } };
     expect(result.error.code).toBe("CONFLICT");
+  });
+
+  it("发布公开文章时应返回前台更新状态", async () => {
+    const response = await apiFetch("/api/admin/posts", {
+      method: "POST",
+      headers: {
+        Authorization: authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "自动更新测试文章",
+        slug: "pages-deploy-status-test",
+        content: "公开正文",
+        status: "published",
+        is_public: 1,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
+      data: { deployment: { status: string } };
+    };
+    expect(result.data.deployment.status).toBe("not_configured");
   });
 });

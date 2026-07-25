@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { applyMarkdownAction, getContentStats, slugifyTitle } from "./editor";
+import {
+  applyMarkdownAction,
+  getContentStats,
+  slugifyTitle,
+} from "./editor";
 
 describe("文章编辑器工具", () => {
   it("应生成适合 URL 的中英文 slug", () => {

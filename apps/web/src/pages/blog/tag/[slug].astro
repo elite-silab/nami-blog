@@ -1,16 +1,17 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 export async function getStaticPaths() {
   const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
   let tags: Array<{ slug: string }> = [];
   try {
-    const res = await fetch(`${apiUrl}/api/v1/tags`);
+    const res = await fetchBuildApi(apiUrl, "/api/v1/tags");
     if (res.ok) {
       const json = await res.json();
       tags = json.data || [];
     }
-  } catch {}
+  } catch (error) { handleBuildApiError("标签路径", error); }
   return tags.map((tag) => ({ params: { slug: tag.slug } }));
 }
 
@@ -32,8 +33,8 @@ let tagName = slug;
 
 try {
   const [postsRes, tagsRes] = await Promise.all([
-    fetch(`${apiUrl}/api/v1/posts?tag=${slug}&limit=100`),
-    fetch(`${apiUrl}/api/v1/tags`),
+    fetchBuildApi(apiUrl, `/api/v1/posts?tag=${slug}&limit=100`),
+    fetchBuildApi(apiUrl, "/api/v1/tags"),
   ]);
   if (postsRes.ok) {
     const json = await postsRes.json();
@@ -44,7 +45,7 @@ try {
     const tag = (json.data || []).find((t: any) => t.slug === slug);
     if (tag) tagName = tag.name;
   }
-} catch {}
+} catch (error) { handleBuildApiError(`标签 ${slug}`, error); }
 ---
 
 <BaseLayout title={`标签：${tagName} — Nami Blog`}>

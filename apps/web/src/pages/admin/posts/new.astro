@@ -14,6 +14,7 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
       slugifyTitle,
       type MarkdownAction,
     } from "@/lib/editor";
+    import { getPagesDeployNotice } from "@/lib/pages-deployment";
 
     const DRAFT_KEY = "nami-new-post-draft";
     const form = document.getElementById("post-form") as HTMLFormElement;
@@ -36,10 +37,15 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
       return element.innerHTML;
     }
 
-    function showNotice(message: string, kind: "error" | "success" = "error") {
+    function showNotice(message: string, kind: "error" | "success" | "warning" = "error") {
       const notice = document.getElementById("editor-notice")!;
       notice.textContent = message;
-      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${kind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`;
+      const styles = {
+        error: "border-red-200 bg-red-50 text-red-700",
+        success: "border-green-200 bg-green-50 text-green-700",
+        warning: "border-yellow-200 bg-yellow-100 text-yellow-700",
+      };
+      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${styles[kind]}`;
     }
 
     function updateStats() {
@@ -197,8 +203,13 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
 
         hasUnsavedChanges = false;
         sessionStorage.removeItem(DRAFT_KEY);
-        status.textContent = postStatus === "published" ? "发布成功，正在打开…" : "草稿已保存，正在打开…";
-        window.location.href = `/admin/posts/edit?id=${result.data.id}`;
+        const deployStatus = result.data.deployment?.status || "not_needed";
+        const deployNotice = getPagesDeployNotice(deployStatus);
+        status.textContent = deployNotice?.message || "草稿已保存，正在打开…";
+        const deployQuery = deployStatus === "not_needed"
+          ? ""
+          : `&deploy=${encodeURIComponent(deployStatus)}`;
+        window.location.href = `/admin/posts/edit?id=${result.data.id}${deployQuery}`;
       } catch (error) {
         const message = error instanceof TypeError
           ? "无法连接 Workers API，请确认服务正在运行"

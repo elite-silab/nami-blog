@@ -13,8 +13,10 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
       getContentStats,
       type MarkdownAction,
     } from "@/lib/editor";
+    import { getPagesDeployNotice } from "@/lib/pages-deployment";
 
-    const postId = new URLSearchParams(window.location.search).get("id");
+    const pageParams = new URLSearchParams(window.location.search);
+    const postId = pageParams.get("id");
     const form = document.getElementById("post-form") as HTMLFormElement;
     const title = document.getElementById("title") as HTMLInputElement;
     const content = document.getElementById("content") as HTMLTextAreaElement;
@@ -30,10 +32,15 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
       return element.innerHTML;
     }
 
-    function showNotice(message: string, kind: "error" | "success" = "error") {
+    function showNotice(message: string, kind: "error" | "success" | "warning" = "error") {
       const notice = document.getElementById("editor-notice")!;
       notice.textContent = message;
-      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${kind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`;
+      const styles = {
+        error: "border-red-200 bg-red-50 text-red-700",
+        success: "border-green-200 bg-green-50 text-green-700",
+        warning: "border-yellow-200 bg-yellow-100 text-yellow-700",
+      };
+      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${styles[kind]}`;
     }
 
     function updateStats() {
@@ -108,6 +115,13 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
         hydrated = true;
         saveStatus.textContent = "已载入，修改后请保存";
         saveStatus.style.color = "var(--color-text-secondary)";
+        const deployNotice = getPagesDeployNotice(pageParams.get("deploy"));
+        if (deployNotice) {
+          showNotice(deployNotice.message, deployNotice.kind);
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete("deploy");
+          history.replaceState(null, "", cleanUrl);
+        }
       } catch (error) {
         const message = error instanceof TypeError
           ? "无法连接 Workers API，请确认服务正在运行"
@@ -159,9 +173,15 @@ import AdminPostEditor from "@/components/AdminPostEditor.astro";
         if (!response.ok) throw new Error(result.error?.message || "保存失败");
 
         hasUnsavedChanges = false;
-        saveStatus.textContent = `✓ 已保存于 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
-        saveStatus.style.color = "var(--color-success)";
-        showNotice("文章修改已保存。", "success");
+        const deployNotice = getPagesDeployNotice(result.data.deployment?.status);
+        saveStatus.textContent = deployNotice?.message || `✓ 已保存于 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+        saveStatus.style.color = deployNotice?.kind === "error"
+          ? "var(--color-danger)"
+          : deployNotice?.kind === "warning"
+            ? "var(--color-warning)"
+            : "var(--color-success)";
+        if (deployNotice) showNotice(deployNotice.message, deployNotice.kind);
+        else showNotice("文章修改已保存。", "success");
       } catch (error) {
         const message = error instanceof TypeError
           ? "无法连接 Workers API，请确认服务正在运行"

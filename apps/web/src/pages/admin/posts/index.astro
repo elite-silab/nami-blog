@@ -14,6 +14,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
   <script>
     import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+    import { rememberPagesDeployStatus } from "@/lib/pages-deployment";
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status") || "";
     const page = parseInt(params.get("page") || "1");
@@ -81,7 +82,11 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       if (!confirm(`确认删除文章「${deleteTitle}」？`)) return;
       try {
         const res = await adminFetch(`${API_BASE}/api/admin/posts/${deleteId}`, { method: "DELETE" });
-        if (res.ok) window.location.reload(); else alert("删除失败");
+        const result = await res.json();
+        if (res.ok) {
+          rememberPagesDeployStatus(result.data?.deployment?.status);
+          window.location.reload();
+        } else alert(result.error?.message || "删除失败");
       } catch { alert("删除失败"); }
     });
 

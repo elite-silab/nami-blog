@@ -99,8 +99,38 @@ const currentPath = Astro.url.pathname;
 
     <button id="admin-sidebar-overlay" type="button" class="pointer-events-none fixed inset-0 z-30 bg-black/30 opacity-0 transition-opacity lg:hidden" aria-label="关闭管理菜单"></button>
 
+    <div id="pages-deploy-notice" class="fixed bottom-4 right-4 z-[70] hidden max-w-sm items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-sm shadow-2xl" role="status" aria-live="polite">
+      <span id="pages-deploy-icon" class="mt-0.5 text-base" aria-hidden="true">✓</span>
+      <p id="pages-deploy-message" class="flex-1 leading-6"></p>
+      <button id="pages-deploy-close" type="button" class="text-lg leading-none text-[var(--color-text-tertiary)] hover:text-[var(--color-text)]" aria-label="关闭提示">×</button>
+    </div>
+
     <script>
       import { logoutAdminSession } from "@/lib/admin-session";
+      import { consumePagesDeployNotice } from "@/lib/pages-deployment";
+
+      const deploymentNotice = consumePagesDeployNotice();
+      const deploymentToast = document.getElementById("pages-deploy-notice");
+      if (deploymentNotice && deploymentToast) {
+        const colors = {
+          success: "var(--color-success)",
+          warning: "var(--color-warning)",
+          error: "var(--color-danger)",
+        };
+        deploymentToast.style.borderColor = colors[deploymentNotice.kind];
+        const deploymentIcon = document.getElementById("pages-deploy-icon")!;
+        deploymentIcon.style.color = colors[deploymentNotice.kind];
+        deploymentIcon.textContent = deploymentNotice.kind === "success" ? "✓" : "!";
+        document.getElementById("pages-deploy-message")!.textContent = deploymentNotice.message;
+        deploymentToast.classList.remove("hidden");
+        deploymentToast.classList.add("flex");
+        const closeToast = () => {
+          deploymentToast.classList.add("hidden");
+          deploymentToast.classList.remove("flex");
+        };
+        document.getElementById("pages-deploy-close")?.addEventListener("click", closeToast);
+        setTimeout(closeToast, 8000);
+      }
 
       const sidebar = document.getElementById("admin-sidebar");
       const menuToggle = document.getElementById("admin-menu-toggle");

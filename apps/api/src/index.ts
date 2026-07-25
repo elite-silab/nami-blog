@@ -14,6 +14,7 @@ export type Env = {
     JWT_SECRET: string;
     JWT_REFRESH_SECRET?: string;
     ADMIN_INITIAL_PASSWORD?: string;
+    PAGES_DEPLOY_HOOK_URL?: string;
     SITE_NAME: string;
     CORS_ORIGIN: string;
   };

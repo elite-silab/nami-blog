@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
 
@@ -19,13 +20,13 @@ let categories: Array<{ id: number; name: string; slug: string; post_count: numb
 
 try {
   const [postsRes, catsRes] = await Promise.all([
-    fetch(`${apiUrl}/api/v1/posts?limit=10`),
-    fetch(`${apiUrl}/api/v1/categories`),
+    fetchBuildApi(apiUrl, "/api/v1/posts?limit=10"),
+    fetchBuildApi(apiUrl, "/api/v1/categories"),
   ]);
   if (postsRes.ok) posts = (await postsRes.json()).data || [];
   if (catsRes.ok) categories = (await catsRes.json()).data || [];
-} catch {
-  // 静态构建时 API 不可用仍能输出可访问的空状态页面。
+} catch (error) {
+  handleBuildApiError("首页文章和分类", error);
 }
 
 const pinnedPosts = posts.filter((post) => post.is_pinned === 1);

@@ -104,7 +104,23 @@ database_id = "粘贴你的 Database ID"
 
 `SITE_URL` 用于生成 SEO 标准链接、Sitemap、RSS 和分享链接；`CORS_ORIGIN` 用于允许该前端访问 API。第一次 Pages 部署只是为了获得真实地址；第二次部署才会使正式的 `SITE_URL` 生效。
 
-## 第七步：首次登录管理员
+## 第七步：开启后台内容自动更新
+
+Pages 已经部署完成，现在创建一个专门用于内容更新的 Deploy Hook：
+
+1. 进入 Pages 项目的 **Settings → Builds & deployments → Deploy hooks**。
+2. 点击 **Add deploy hook**。
+3. 名称填写 `Nami Publish`，分支选择 `main`，然后创建。
+4. 复制 Cloudflare 生成的完整 Hook URL。
+5. 进入 `nami-blog-api` Worker 的 **Settings → Variables and Secrets**。
+6. 点击新增变量，类型选择 **Secret**，名称填写 `PAGES_DEPLOY_HOOK_URL`，值粘贴 Hook URL。
+7. 保存后重新部署一次 Worker，让 Secret 生效。
+
+不要把 Hook URL 写入 GitHub、Pages 环境变量、`.env.example` 或截图。它相当于一个只用于触发 Pages 构建的密码。
+
+配置成功后，以下操作会自动重建前台：发布、修改、取消公开或删除公开文章；修改分类、标签、已通过的友链；保存站点设置。后台会显示“前台正在自动更新”，一般等待 1–2 分钟即可。草稿、非公开文章、待审核友链和评论不会触发重建。
+
+## 第八步：首次登录管理员
 
 打开“实际 Pages 地址 + `/admin/login`”：
 
@@ -118,11 +134,13 @@ database_id = "粘贴你的 Database ID"
 
 删除或修改这个 Secret 不会重置已经创建的管理员。
 
-## 第八步：验证自动部署
+## 第九步：验证自动更新
 
 1. 打开 Pages 地址，确认首页正常。
-2. 登录后台，修改站点名称或主题。
-3. 在 GitHub 提交一次文档修改，确认 Workers/Pages 的 Git 集成自动触发部署。
+2. 登录后台，发布一篇公开文章。
+3. 确认后台出现“前台正在自动更新”的提示。
+4. 等待 Pages 完成部署，再打开 `/blog/`，确认文章已经显示。
+5. 在 GitHub 提交一次文档修改，确认 Workers/Pages 的 Git 集成也能自动触发部署。
 
 仓库内的 GitHub Actions 负责 Lint、类型检查、测试和构建验证；实际发布由 Cloudflare 的 Git 集成完成，不需要配置 GitHub API Token。
 
@@ -139,6 +157,16 @@ database_id = "粘贴你的 Database ID"
 ### 页面能打开但 API 请求失败
 
 核对三处地址是否完全一致：浏览器实际访问的前端地址、`wrangler.toml` 的 `CORS_ORIGIN`、Pages 的 `SITE_URL`。地址末尾不要额外添加路径或 `/`。
+
+### 后台有文章，但前台看不到
+
+先确认文章状态是“已发布”且“公开”开关已打开。再查看后台保存后的提示：
+
+- “前台正在自动更新”：等待 Pages 构建完成，通常需要 1–2 分钟。
+- “尚未配置自动更新”：按第七步设置 `PAGES_DEPLOY_HOOK_URL`。
+- “自动更新前台失败”：重新复制 Deploy Hook URL，并确认它作为 Worker 的 Secret 保存。
+
+如果 Cloudflare 显示部署成功但 `/blog/` 仍为空，请确认仓库已更新到包含文章列表修复的最新版本，然后重新部署 Pages。
 
 ### Pages 项目名被占用
 

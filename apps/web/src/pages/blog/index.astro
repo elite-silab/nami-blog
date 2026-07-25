@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import PostCard from "@/components/PostCard.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 const POSTS_PER_PAGE = 10;
 const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
@@ -17,12 +18,12 @@ interface Post {
 
 let allPosts: Post[] = [];
 try {
-  const res = await fetch(`${apiUrl}/api/v1/posts?limit=500`);
+  const res = await fetchBuildApi(apiUrl, "/api/v1/posts?limit=100");
   if (res.ok) {
     const json = await res.json();
     allPosts = json.data || [];
   }
-} catch { /* ignore */ }
+} catch (error) { handleBuildApiError("文章列表", error); }
 
 const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
 const posts = allPosts.slice(0, POSTS_PER_PAGE);

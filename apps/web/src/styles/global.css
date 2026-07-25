@@ -422,14 +422,6 @@ html {
     0 0 0 1px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
-.admin-dialog::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 0.25rem;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-}
-
 .admin-dialog::backdrop {
   background: color-mix(in srgb, #07111f 58%, transparent);
   backdrop-filter: blur(5px);

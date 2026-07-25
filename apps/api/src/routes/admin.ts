@@ -5,11 +5,19 @@ import { Hono } from "hono";
 import type { Env } from "../index";
 import { adminAuth } from "../middleware/auth";
 import { parsePagination } from "../lib/pagination";
+import {
+  noPagesRebuildNeeded,
+  triggerPagesRebuild,
+} from "../lib/pages-deploy";
 
 export const adminRoutes = new Hono<Env>();
 
 // 所有 /api/admin/* 路由需要鉴权
 adminRoutes.use("*", adminAuth);
+
+function isPublicPost(status: string, isPublic: number) {
+  return status === "published" && isPublic === 1;
+}
 
 // ═══════════════════════════════════════════
 // Dashboard
@@ -186,6 +194,8 @@ adminRoutes.post("/posts", async (c) => {
   }
 
   const postContent = String(body.content || "");
+  const isPublic =
+    body.is_public !== undefined ? (Number(body.is_public) === 1 ? 1 : 0) : 1;
 
   const result = await DB.prepare(
     `INSERT INTO posts (author_id, title, slug, content, excerpt, cover_url, status, is_pinned, is_public, word_count, published_at)
@@ -200,7 +210,7 @@ adminRoutes.post("/posts", async (c) => {
       body.cover_url || null,
       postStatus,
       body.is_pinned || 0,
-      body.is_public !== undefined ? body.is_public : 1,
+      isPublic,
       postContent.replace(/\s/g, "").length,
       postStatus === "published" ? new Date().toISOString() : null,
     )
@@ -228,7 +238,11 @@ adminRoutes.post("/posts", async (c) => {
     }
   }
 
-  return c.json({ data: { id: postId } });
+  const deployment = isPublicPost(postStatus, isPublic)
+    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+    : noPagesRebuildNeeded();
+
+  return c.json({ data: { id: postId, deployment } });
 });
 
 adminRoutes.put("/posts/:id", async (c) => {
@@ -237,15 +251,17 @@ adminRoutes.put("/posts/:id", async (c) => {
   const id = c.req.param("id");
 
   const existing = await DB.prepare(
-    "SELECT id, status FROM posts WHERE id = ? AND deleted_at IS NULL",
+    "SELECT id, status, is_public FROM posts WHERE id = ? AND deleted_at IS NULL",
   )
     .bind(id)
-    .first<{ id: number; status: string }>();
+    .first<{ id: number; status: string; is_public: number }>();
   if (!existing)
     return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
 
   const updates: string[] = [];
   const bindings: (string | number | null)[] = [];
+  let finalStatus = existing.status;
+  let finalIsPublic = existing.is_public;
   const setField = (field: string, value: string | number | null) => {
     updates.push(`${field} = ?`);
     bindings.push(value);
@@ -297,7 +313,8 @@ adminRoutes.put("/posts/:id", async (c) => {
     setField("is_pinned", Number(body.is_pinned) === 1 ? 1 : 0);
   }
   if (body.is_public !== undefined) {
-    setField("is_public", Number(body.is_public) === 1 ? 1 : 0);
+    finalIsPublic = Number(body.is_public) === 1 ? 1 : 0;
+    setField("is_public", finalIsPublic);
   }
   if (body.status !== undefined) {
     const status = typeof body.status === "string" ? body.status : "";
@@ -307,6 +324,7 @@ adminRoutes.put("/posts/:id", async (c) => {
         400,
       );
     }
+    finalStatus = status;
     setField("status", status);
     if (status === "published" && existing.status !== "published") {
       setField("published_at", new Date().toISOString());
@@ -346,10 +364,26 @@ adminRoutes.put("/posts/:id", async (c) => {
     }
   }
 
-  return c.json({ data: { message: "更新成功" } });
+  const affectsPublicSite =
+    isPublicPost(existing.status, existing.is_public) ||
+    isPublicPost(finalStatus, finalIsPublic);
+  const deployment = affectsPublicSite
+    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+    : noPagesRebuildNeeded();
+
+  return c.json({ data: { message: "更新成功", deployment } });
 });
 
 adminRoutes.delete("/posts/:id", async (c) => {
+  const existing = await c.env.DB.prepare(
+    "SELECT status, is_public FROM posts WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(c.req.param("id"))
+    .first<{ status: string; is_public: number }>();
+  if (!existing) {
+    return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
+  }
+
   const result = await c.env.DB.prepare(
     "UPDATE posts SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
@@ -358,7 +392,11 @@ adminRoutes.delete("/posts/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
-  return c.json({ data: { message: "文章已删除" } });
+
+  const deployment = isPublicPost(existing.status, existing.is_public)
+    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+    : noPagesRebuildNeeded();
+  return c.json({ data: { message: "文章已删除", deployment } });
 });
 
 // ═══════════════════════════════════════════
@@ -393,7 +431,8 @@ adminRoutes.post("/categories", async (c) => {
     .bind(body.name, body.slug, body.description || null, body.sort_order || 0)
     .run();
 
-  return c.json({ data: { id: result.meta.last_row_id } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { id: result.meta.last_row_id, deployment } });
 });
 
 adminRoutes.put("/categories/:id", async (c) => {
@@ -415,7 +454,8 @@ adminRoutes.put("/categories/:id", async (c) => {
     )
     .run();
 
-  return c.json({ data: { message: "更新成功" } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "更新成功", deployment } });
 });
 
 adminRoutes.delete("/categories/:id", async (c) => {
@@ -427,7 +467,8 @@ adminRoutes.delete("/categories/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "分类不存在" } }, 404);
-  return c.json({ data: { message: "分类已删除" } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "分类已删除", deployment } });
 });
 
 // ═══════════════════════════════════════════
@@ -461,7 +502,8 @@ adminRoutes.post("/tags", async (c) => {
     .bind(body.name, body.slug, body.color || null)
     .run();
 
-  return c.json({ data: { id: result.meta.last_row_id } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { id: result.meta.last_row_id, deployment } });
 });
 
 adminRoutes.put("/tags/:id", async (c) => {
@@ -481,7 +523,8 @@ adminRoutes.put("/tags/:id", async (c) => {
     )
     .run();
 
-  return c.json({ data: { message: "更新成功" } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "更新成功", deployment } });
 });
 
 adminRoutes.delete("/tags/:id", async (c) => {
@@ -493,7 +536,8 @@ adminRoutes.delete("/tags/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "标签不存在" } }, 404);
-  return c.json({ data: { message: "标签已删除" } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "标签已删除", deployment } });
 });
 
 // ═══════════════════════════════════════════
@@ -609,7 +653,9 @@ adminRoutes.post("/friends", async (c) => {
     )
     .run();
 
-  return c.json({ data: { id: result.meta.last_row_id } });
+  return c.json({
+    data: { id: result.meta.last_row_id, deployment: noPagesRebuildNeeded() },
+  });
 });
 
 adminRoutes.put("/friends/:id", async (c) => {
@@ -619,6 +665,15 @@ adminRoutes.put("/friends/:id", async (c) => {
     avatar_url?: string;
     description?: string;
   }>();
+  const existing = await c.env.DB.prepare(
+    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(c.req.param("id"))
+    .first<{ status: string }>();
+  if (!existing) {
+    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
+  }
+
   await c.env.DB.prepare(
     "UPDATE friends SET name = COALESCE(?, name), url = COALESCE(?, url), avatar_url = COALESCE(?, avatar_url), description = COALESCE(?, description), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
@@ -631,10 +686,22 @@ adminRoutes.put("/friends/:id", async (c) => {
     )
     .run();
 
-  return c.json({ data: { message: "更新成功" } });
+  const deployment = existing.status === "approved"
+    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+    : noPagesRebuildNeeded();
+  return c.json({ data: { message: "更新成功", deployment } });
 });
 
 adminRoutes.delete("/friends/:id", async (c) => {
+  const existing = await c.env.DB.prepare(
+    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(c.req.param("id"))
+    .first<{ status: string }>();
+  if (!existing) {
+    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
+  }
+
   const result = await c.env.DB.prepare(
     "UPDATE friends SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
@@ -643,7 +710,10 @@ adminRoutes.delete("/friends/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  return c.json({ data: { message: "友链已删除" } });
+  const deployment = existing.status === "approved"
+    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+    : noPagesRebuildNeeded();
+  return c.json({ data: { message: "友链已删除", deployment } });
 });
 
 adminRoutes.patch("/friends/:id/status", async (c) => {
@@ -660,6 +730,15 @@ adminRoutes.patch("/friends/:id/status", async (c) => {
     );
   }
 
+  const existing = await c.env.DB.prepare(
+    "SELECT status FROM friends WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(c.req.param("id"))
+    .first<{ status: string }>();
+  if (!existing) {
+    return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
+  }
+
   const result = await c.env.DB.prepare(
     "UPDATE friends SET status = ?, updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
@@ -668,7 +747,11 @@ adminRoutes.patch("/friends/:id/status", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  return c.json({ data: { message: "状态已更新" } });
+  const deployment =
+    existing.status === "approved" || body.status === "approved"
+      ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
+      : noPagesRebuildNeeded();
+  return c.json({ data: { message: "状态已更新", deployment } });
 });
 
 // ═══════════════════════════════════════════
@@ -734,5 +817,6 @@ adminRoutes.put("/settings", async (c) => {
       .run();
   }
 
-  return c.json({ data: { message: "设置已保存" } });
+  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
+  return c.json({ data: { message: "设置已保存", deployment } });
 });

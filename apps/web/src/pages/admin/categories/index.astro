@@ -47,6 +47,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
   <script>
     import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+    import { rememberPagesDeployStatus } from "@/lib/pages-deployment";
 
     async function loadCategories() {
       const table = document.getElementById("categories-table")!;
@@ -106,7 +107,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       if (event.target === modal) modal.close();
     });
 
-    document.addEventListener("click", (e) => {
+    document.addEventListener("click", async (e) => {
       const target = e.target as HTMLElement;
       if (target.dataset.editId) {
         (document.getElementById("modal-title") as HTMLElement).textContent = "编辑分类";
@@ -121,8 +122,11 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         const name = target.dataset.deleteName!;
         if (count > 0) { alert(`分类「${name}」下有 ${count} 篇文章，请先迁移后再删除`); return; }
         if (!confirm(`确认删除分类「${name}」？`)) return;
-        adminFetch(`${API_BASE}/api/admin/categories/${target.dataset.deleteId}`, { method: "DELETE" })
-          .then((r) => r.ok ? location.reload() : alert("删除失败"));
+        const response = await adminFetch(`${API_BASE}/api/admin/categories/${target.dataset.deleteId}`, { method: "DELETE" });
+        const result = await response.json();
+        if (!response.ok) { alert(result.error?.message || "删除失败"); return; }
+        rememberPagesDeployStatus(result.data?.deployment?.status);
+        location.reload();
       }
     });
 
@@ -138,8 +142,13 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       const url = editId ? `${API_BASE}/api/admin/categories/${editId}` : `${API_BASE}/api/admin/categories`;
       const method = editId ? "PUT" : "POST";
       const res = await adminFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      if (res.ok) { modal.close(); location.reload(); }
-      else { const err = await res.json(); alert(err.error?.message || "保存失败"); }
+      const result = await res.json();
+      if (res.ok) {
+        rememberPagesDeployStatus(result.data?.deployment?.status);
+        modal.close();
+        location.reload();
+      }
+      else { alert(result.error?.message || "保存失败"); }
     });
 
     loadCategories();

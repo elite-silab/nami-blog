@@ -1,16 +1,17 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 export async function getStaticPaths() {
   const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
   let categories: Array<{ slug: string }> = [];
   try {
-    const res = await fetch(`${apiUrl}/api/v1/categories`);
+    const res = await fetchBuildApi(apiUrl, "/api/v1/categories");
     if (res.ok) {
       const json = await res.json();
       categories = json.data || [];
     }
-  } catch {}
+  } catch (error) { handleBuildApiError("分类路径", error); }
   return categories.map((cat) => ({ params: { slug: cat.slug } }));
 }
 
@@ -32,8 +33,8 @@ let categoryName = slug;
 
 try {
   const [postsRes, catsRes] = await Promise.all([
-    fetch(`${apiUrl}/api/v1/posts?category=${slug}&limit=100`),
-    fetch(`${apiUrl}/api/v1/categories`),
+    fetchBuildApi(apiUrl, `/api/v1/posts?category=${slug}&limit=100`),
+    fetchBuildApi(apiUrl, "/api/v1/categories"),
   ]);
   if (postsRes.ok) {
     const json = await postsRes.json();
@@ -44,7 +45,7 @@ try {
     const cat = (json.data || []).find((c: any) => c.slug === slug);
     if (cat) categoryName = cat.name;
   }
-} catch {}
+} catch (error) { handleBuildApiError(`分类 ${slug}`, error); }
 ---
 
 <BaseLayout title={`分类：${categoryName} — Nami Blog`}>

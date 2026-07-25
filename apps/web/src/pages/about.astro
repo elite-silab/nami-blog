@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { fetchBuildApi, handleBuildApiError } from "@/lib/build-api";
 
 const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
 
@@ -15,12 +16,12 @@ interface Settings {
 
 let settings: Partial<Settings> = {};
 try {
-  const res = await fetch(`${apiUrl}/api/v1/settings`);
+  const res = await fetchBuildApi(apiUrl, "/api/v1/settings");
   if (res.ok) {
     const json = await res.json();
     settings = json.data || {};
   }
-} catch { /* ignore */ }
+} catch (error) { handleBuildApiError("关于页设置", error); }
 
 function safeHttpUrl(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return null;
