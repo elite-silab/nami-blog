@@ -1,0 +1,85 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+
+interface Settings {
+  site_name: string;
+  site_description: string;
+  site_about: string;
+  social_links: {
+    github?: string | null;
+    email?: string | null;
+  };
+}
+
+let settings: Partial<Settings> = {};
+try {
+  const res = await fetch(`${apiUrl}/api/v1/settings`);
+  if (res.ok) {
+    const json = await res.json();
+    settings = json.data || {};
+  }
+} catch { /* ignore */ }
+
+function safeHttpUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+const githubUrl = safeHttpUrl(settings.social_links?.github)
+  || "https://github.com/elite-silab/nami-blog";
+const parsedGithubUrl = new URL(githubUrl);
+const githubLabel = parsedGithubUrl.hostname === "github.com"
+  ? parsedGithubUrl.pathname.replace(/^\//, "").replace(/\/$/, "") || "GitHub"
+  : "GitHub";
+const contactEmail = typeof settings.social_links?.email === "string"
+  && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.social_links.email)
+  ? settings.social_links.email
+  : null;
+---
+
+<BaseLayout title="关于 — Nami Blog" description={settings.site_description || "关于 Nami Blog 和博主"}>
+  <article class="mx-auto max-w-prose px-4 py-16">
+    <h1 class="text-3xl font-bold tracking-tight">关于</h1>
+
+    <section class="prose mt-8">
+      {settings.site_about ? (
+        <div set:html={settings.site_about} />
+      ) : (
+        <>
+          <p>
+            你好，这里是 <strong>{settings.site_name || "Nami Blog"}</strong> —— 一个运行在 Cloudflare Pages 上的轻量博客。
+          </p>
+          <p>
+            {settings.site_description || "这个博客用来记录技术学习和生活中的一些思考，采用 Astro + Cloudflare Workers 构建，追求简洁、快速和良好的阅读体验。"}
+          </p>
+
+          <h2>技术栈</h2>
+          <ul>
+            <li><strong>Astro 5</strong> — 静态优先，Islands Architecture</li>
+            <li><strong>Cloudflare Workers</strong> — 边缘计算 API</li>
+            <li><strong>D1</strong> — SQLite 兼容数据库</li>
+            <li><strong>Tailwind CSS 4</strong> — 原子化样式</li>
+          </ul>
+
+          <h2>联系</h2>
+          <p>
+            如果你有任何问题或建议，欢迎通过以下方式联系：
+          </p>
+          <ul>
+            <li>GitHub: <a href={githubUrl} class="text-[var(--color-primary)] hover:underline" target="_blank" rel="noopener noreferrer">{githubLabel}</a></li>
+            {contactEmail && (
+              <li>Email: <a href={`mailto:${contactEmail}`} class="text-[var(--color-primary)] hover:underline">{contactEmail}</a></li>
+            )}
+          </ul>
+        </>
+      )}
+    </section>
+  </article>
+</BaseLayout>

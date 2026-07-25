@@ -1,0 +1,112 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="仪表盘">
+  <div id="dashboard-root" class="space-y-8">
+    <div class="py-8 text-center text-sm text-[var(--color-text-tertiary)]">加载中…</div>
+  </div>
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+
+    function esc(s: string) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function loadDashboard() {
+      const root = document.getElementById("dashboard-root")!;
+      try {
+        const res = await adminFetch(`${API_BASE}/api/admin/dashboard`);
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const { data } = await res.json();
+
+        root.innerHTML = `
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+              <div class="text-sm text-[var(--color-text-secondary)]">文章总数</div>
+              <div class="mt-1 text-3xl font-bold">${data.posts.published + data.posts.draft}</div>
+              <div class="mt-2 text-xs text-[var(--color-text-tertiary)]">已发布 ${data.posts.published} · 草稿 ${data.posts.draft}</div>
+            </div>
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+              <div class="text-sm text-[var(--color-text-secondary)]">评论总数</div>
+              <div class="mt-1 text-3xl font-bold">${data.comments.total}</div>
+              <div class="mt-2 text-xs ${data.comments.pending > 0 ? "text-[var(--color-danger)] font-medium" : "text-[var(--color-text-tertiary)]"}">${data.comments.pending} 条待审核</div>
+            </div>
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+              <div class="text-sm text-[var(--color-text-secondary)]">总浏览量</div>
+              <div class="mt-1 text-3xl font-bold">—</div>
+              <div class="mt-2 text-xs text-[var(--color-text-tertiary)]">CF Analytics 接入中</div>
+            </div>
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+              <div class="text-sm text-[var(--color-text-secondary)]">存储用量</div>
+              <div class="mt-1 text-3xl font-bold">—</div>
+              <div class="mt-2 text-xs text-[var(--color-text-tertiary)]">public/images/ 静态管理</div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold">快捷操作</h2>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <a href="/admin/posts/new" class="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)]">
+                <span class="text-2xl">📝</span><div><div class="font-medium">写新文章</div><div class="text-xs text-[var(--color-text-secondary)]">Markdown 编辑器</div></div>
+              </a>
+              <a href="/admin/comments" class="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)]">
+                <span class="text-2xl">💬</span><div><div class="font-medium">审核评论</div><div class="text-xs text-[var(--color-text-secondary)]">${data.comments.pending} 条待审核</div></div>
+              </a>
+              <a href="/admin/friends" class="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-light)]">
+                <span class="text-2xl">🔗</span><div><div class="font-medium">友链管理</div><div class="text-xs text-[var(--color-text-secondary)]">审核与排序</div></div>
+              </a>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+              <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+                <h3 class="font-semibold">最近文章</h3>
+                <a href="/admin/posts" class="text-sm text-[var(--color-primary)] hover:underline">查看全部</a>
+              </div>
+              <div class="divide-y divide-[var(--color-border)]">
+                ${data.recentPosts.length === 0
+                  ? '<div class="px-5 py-8 text-center text-sm text-[var(--color-text-tertiary)]">暂无文章</div>'
+                  : data.recentPosts.map((p: any) => `
+                    <div class="flex items-center justify-between px-5 py-3">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-block h-2 w-2 rounded-full ${p.status === "published" ? "bg-[var(--color-success)]" : "bg-[var(--color-warning)]"}"></span>
+                        <span class="text-sm">${esc(p.title)}</span>
+                      </div>
+                      <span class="text-xs text-[var(--color-text-tertiary)]">${new Date(p.updated_at).toLocaleDateString("zh-CN")}</span>
+                    </div>`).join("")}
+              </div>
+            </div>
+            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+              <div class="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+                <h3 class="font-semibold">待审核评论</h3>
+                <a href="/admin/comments" class="text-sm text-[var(--color-primary)] hover:underline">查看全部</a>
+              </div>
+              <div class="divide-y divide-[var(--color-border)]">
+                ${data.recentComments.length === 0
+                  ? '<div class="px-5 py-8 text-center text-sm text-[var(--color-text-tertiary)]">暂无待审核评论</div>'
+                  : data.recentComments.map((c: any) => `
+                    <div class="px-5 py-3">
+                      <div class="flex items-center gap-2 text-sm">
+                        <span class="font-medium">${esc(c.author_name)}</span>
+                        <span class="text-[var(--color-text-tertiary)]">在</span>
+                        <span class="text-[var(--color-primary)]">${esc(c.post_title)}</span>
+                      </div>
+                      <p class="mt-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">${esc(c.content)}</p>
+                    </div>`).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      } catch {
+        root.innerHTML = '<div class="py-8 text-center text-sm text-[var(--color-danger)]">加载失败，请刷新页面重试</div>';
+      }
+    }
+
+    loadDashboard();
+  </script>
+</AdminLayout>

@@ -1,0 +1,414 @@
+@import "tailwindcss";
+
+/* Tailwind dark mode: use data-dark attribute */
+@custom-variant dark (&:where([data-dark="true"], [data-dark="true"] *));
+
+/* ── Design Token：默认（基础明色，可被主题覆盖） ── */
+:root {
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #dbeafe;
+
+  --color-accent: #8b5cf6;
+  --color-accent-light: #ede9fe;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  /* 主题装饰 */
+  --theme-gradient-from: transparent;
+  --theme-gradient-via: transparent;
+  --theme-gradient-to: transparent;
+  --theme-glow: transparent;
+
+  --font-sans:
+    "Avenir Next", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-display: "Iowan Old Style", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Menlo", monospace;
+}
+
+/* ── 基础 Dark 模式（无主题时的通用暗色） ── */
+[data-dark="true"] {
+  --color-primary-light: #1e3a5f;
+
+  --color-bg: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+
+  --color-text: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #64748b;
+
+  --color-border: #334155;
+  --color-border-strong: #475569;
+}
+
+/* ═══════════════════════════════════════════════════════
+   🌸 樱花 Sakura — 春日樱花，温柔浪漫
+   ═══════════════════════════════════════════════════════ */
+[data-theme="sakura"] {
+  --color-primary: #ec4899;
+  --color-primary-hover: #db2777;
+  --color-primary-light: #fce7f3;
+
+  --color-accent: #f472b6;
+  --color-accent-light: #fdf2f8;
+
+  --color-bg: #fffafc;
+  --color-bg-secondary: #fef2f7;
+  --color-bg-tertiary: #fce7f3;
+
+  --color-text: #1a0a12;
+  --color-text-secondary: #7c5068;
+  --color-text-tertiary: #b0849a;
+
+  --color-border: #f9d5e5;
+  --color-border-strong: #f4b8ce;
+
+  --theme-gradient-from: #fce7f3;
+  --theme-gradient-via: #fbcfe8;
+  --theme-gradient-to: #fce7f3;
+  --theme-glow: rgba(236, 72, 153, 0.15);
+}
+
+/* 🌸 樱花 Dark */
+[data-theme="sakura"][data-dark="true"] {
+  --color-primary: #f472b6;
+  --color-primary-hover: #ec4899;
+  --color-primary-light: #3d1a2e;
+
+  --color-accent: #ec4899;
+  --color-accent-light: #2d1020;
+
+  --color-bg: #1a0a12;
+  --color-bg-secondary: #2a1520;
+  --color-bg-tertiary: #3a202e;
+
+  --color-text: #f5e0ea;
+  --color-text-secondary: #c89ab2;
+  --color-text-tertiary: #8a6a7e;
+
+  --color-border: #3d2030;
+  --color-border-strong: #5a3048;
+
+  --theme-gradient-from: #2a1520;
+  --theme-gradient-via: #3d1a2e;
+  --theme-gradient-to: #2a1520;
+  --theme-glow: rgba(244, 114, 182, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   🌊 海洋 Ocean — 蔚蓝深海，清凉通透
+   ═══════════════════════════════════════════════════════ */
+[data-theme="ocean"] {
+  --color-primary: #0891b2;
+  --color-primary-hover: #0e7490;
+  --color-primary-light: #cffafe;
+
+  --color-accent: #06b6d4;
+  --color-accent-light: #ecfeff;
+
+  --color-bg: #f8fdfe;
+  --color-bg-secondary: #f0fdfa;
+  --color-bg-tertiary: #ccfbf1;
+
+  --color-text: #0a1a1f;
+  --color-text-secondary: #4a7a8a;
+  --color-text-tertiary: #80a8b5;
+
+  --color-border: #bce7e0;
+  --color-border-strong: #99d6cf;
+
+  --theme-gradient-from: #cffafe;
+  --theme-gradient-via: #a5f3fc;
+  --theme-gradient-to: #cffafe;
+  --theme-glow: rgba(8, 145, 178, 0.15);
+}
+
+/* 🌊 海洋 Dark */
+[data-theme="ocean"][data-dark="true"] {
+  --color-primary: #22d3ee;
+  --color-primary-hover: #06b6d4;
+  --color-primary-light: #0c3644;
+
+  --color-accent: #0891b2;
+  --color-accent-light: #082830;
+
+  --color-bg: #0a1a1f;
+  --color-bg-secondary: #0f2a32;
+  --color-bg-tertiary: #143a44;
+
+  --color-text: #e0f5f8;
+  --color-text-secondary: #8abcc8;
+  --color-text-tertiary: #5a8a98;
+
+  --color-border: #1a3a44;
+  --color-border-strong: #2a5060;
+
+  --theme-gradient-from: #0f2a32;
+  --theme-gradient-via: #0c3644;
+  --theme-gradient-to: #0f2a32;
+  --theme-glow: rgba(34, 211, 238, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ✨ 星空 Starry — 深邃宇宙，星辰闪烁
+   ═══════════════════════════════════════════════════════ */
+[data-theme="starry"] {
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-light: #ede9fe;
+
+  --color-accent: #a78bfa;
+  --color-accent-light: #f5f3ff;
+
+  --color-bg: #f8f7ff;
+  --color-bg-secondary: #f0eeff;
+  --color-bg-tertiary: #e8e5ff;
+
+  --color-text: #1a1a2e;
+  --color-text-secondary: #5a5a7e;
+  --color-text-tertiary: #8a8aa8;
+
+  --color-border: #d8d5f0;
+  --color-border-strong: #c4c0e8;
+
+  --theme-gradient-from: #ede9fe;
+  --theme-gradient-via: #ddd6fe;
+  --theme-gradient-to: #ede9fe;
+  --theme-glow: rgba(139, 92, 246, 0.15);
+}
+
+/* ✨ 星空 Dark */
+[data-theme="starry"][data-dark="true"] {
+  --color-primary: #a78bfa;
+  --color-primary-hover: #8b5cf6;
+  --color-primary-light: #2e1065;
+
+  --color-accent: #8b5cf6;
+  --color-accent-light: #1e1b4b;
+
+  --color-bg: #0a0a1a;
+  --color-bg-secondary: #12122a;
+  --color-bg-tertiary: #1c1c3a;
+
+  --color-text: #e8e8f0;
+  --color-text-secondary: #a0a0c0;
+  --color-text-tertiary: #6a6a8a;
+
+  --color-border: #2a2a4a;
+  --color-border-strong: #3a3a5a;
+
+  --theme-gradient-from: #1e1b4b;
+  --theme-gradient-via: #312e81;
+  --theme-gradient-to: #1e1b4b;
+  --theme-glow: rgba(167, 139, 250, 0.2);
+}
+
+/* ── Base ── */
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  color: var(--color-bg);
+  background: var(--color-primary);
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  outline-offset: 3px;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.site-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-border) 34%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 24%, transparent) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
+}
+
+.page-enter {
+  animation: page-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 3px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  transition: transform 0.08s linear;
+}
+
+.back-to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 40;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  color: var(--color-text-secondary);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 12%, transparent);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.back-to-top.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  color: var(--color-primary);
+}
+
+/* ── Prose（文章排版） ── */
+.prose {
+  max-width: 680px;
+  line-height: 1.75;
+}
+.prose h2 {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.prose h3 {
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.prose p {
+  margin-top: 1.5rem;
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background-color: var(--color-bg-tertiary);
+}
+.prose blockquote {
+  border-left: 4px solid var(--color-primary);
+  padding-left: 1rem;
+  color: var(--color-text-secondary);
+  background-color: var(--color-primary-light);
+  padding: 0.75rem 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* ── Theme Transition ── */
+html {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* ── Theme Decorative Header Gradient ── */
+.theme-header {
+  background: linear-gradient(
+    135deg,
+    var(--theme-gradient-from),
+    var(--theme-gradient-via),
+    var(--theme-gradient-to)
+  );
+}
+
+/* ── Theme Glow Effect (cards, buttons) ── */
+.theme-glow {
+  box-shadow: 0 0 20px var(--theme-glow);
+}
+
+/* ── Dark Mode Toggle Icon ── */
+.dark-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  line-height: 1;
+}
+.dark-toggle:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+/* ── Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

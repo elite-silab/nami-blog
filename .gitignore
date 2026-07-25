@@ -1,0 +1,42 @@
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Environment ──
+.env
+.env.*
+.dev.vars
+!.env.example
+
+# ── Dependencies ──
+node_modules/
+.pnpm-store/
+
+# ── Build outputs ──
+.astro/
+**/dist/
+.wrangler/
+.mf/
+
+# ── Old directories (deprecated) ──
+functions/
+
+# ── Coverage & Logs ──
+coverage/
+tmp/
+*.log
+
+# ── IDE ──
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# ── Turborepo ──
+.turbo/
+
+# ── Screenshots (dev artifacts) ──
+/*-screenshot.png
+/screenshot-*.png

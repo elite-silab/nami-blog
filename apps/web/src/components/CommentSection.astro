@@ -1,0 +1,231 @@
+---
+/**
+ * 评论区组件 — 展示评论列表 + 提交表单
+ * Props: postId (number)
+ */
+
+interface Props {
+  postId: number;
+}
+
+const { postId } = Astro.props;
+const apiBase = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+---
+
+<section id="comments" data-post-id={postId} data-api-base={apiBase} class="mx-auto mt-12 max-w-[680px] px-4">
+  <h2 class="mb-6 text-xl font-bold">评论</h2>
+
+  <!-- 评论列表（客户端加载） -->
+  <div id="comment-list" class="space-y-4">
+    <div class="space-y-3" aria-label="评论加载中">
+      <div class="h-24 animate-pulse rounded-xl bg-[var(--color-bg-secondary)]"></div>
+      <div class="ml-8 h-20 animate-pulse rounded-xl bg-[var(--color-bg-secondary)]"></div>
+    </div>
+  </div>
+
+  <!-- 提交表单 -->
+  <form id="comment-form" class="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-sm" aria-labelledby="comment-form-title">
+    <h3 id="comment-form-title" class="mb-1 text-base font-semibold">发表评论</h3>
+    <p class="mb-5 text-sm text-[var(--color-text-secondary)]">留下你的想法，友善交流会让这里更有温度。</p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="comment-author-name" class="block text-sm font-medium">昵称 <span class="text-[var(--color-danger)]" aria-hidden="true">*</span></label>
+        <input id="comment-author-name" type="text" name="author_name" required maxlength="50" autocomplete="nickname"
+          class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+          placeholder="你的昵称" />
+      </div>
+      <div>
+        <label for="comment-author-email" class="block text-sm font-medium">邮箱</label>
+        <input id="comment-author-email" type="email" name="author_email" maxlength="100" autocomplete="email"
+          class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+          placeholder="选填，不会公开" />
+      </div>
+    </div>
+    <div class="mt-4">
+      <label for="comment-author-url" class="block text-sm font-medium">网址</label>
+      <input id="comment-author-url" type="url" name="author_url" maxlength="200" autocomplete="url"
+        class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+        placeholder="选填" />
+    </div>
+    <div class="mt-4">
+      <label for="comment-content" class="block text-sm font-medium">评论内容 <span class="text-[var(--color-danger)]" aria-hidden="true">*</span></label>
+      <textarea id="comment-content" name="content" required rows="4" maxlength="2000" aria-describedby="comment-count"
+        class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+        placeholder="写下你的评论…"></textarea>
+    </div>
+    <div class="mt-1 flex items-center justify-between text-xs text-[var(--color-text-tertiary)]">
+      <span>支持纯文本，审核通过后公开显示。</span>
+      <span id="comment-count">0 / 2000</span>
+    </div>
+    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] h-px w-px opacity-0" />
+    <input type="hidden" name="post_id" value={String(postId)} />
+    <input type="hidden" name="parent_id" value="" />
+    <div class="mt-4 flex items-center gap-4">
+      <button type="submit"
+        class="rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-50">
+        提交评论
+      </button>
+      <span id="comment-status" class="text-sm text-[var(--color-text-secondary)]" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+</section>
+
+<script is:inline>
+  const commentRoot = document.getElementById("comments");
+  const POST_ID = Number(commentRoot?.dataset.postId || "0");
+  const API_BASE = commentRoot?.dataset.apiBase || "http://localhost:8788";
+
+  // ── 加载评论列表 ──
+  async function loadComments() {
+    const list = document.getElementById("comment-list");
+    if (!list) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/comments/${POST_ID}`);
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div class="py-8 text-center text-sm text-[var(--color-text-tertiary)]">还没有评论，来说两句吧~</div>';
+        return;
+      }
+
+      // 构建评论树（支持嵌套）
+      const rootComments = data.filter((c) => !c.parent_id);
+      const replies = data.filter((c) => c.parent_id);
+
+      function renderComment(c, isReply) {
+        const childReplies = replies.filter((r) => r.parent_id === c.id);
+        const authorUrl = safeExternalUrl(c.author_url);
+        const nameDisplay = authorUrl
+          ? `<a href="${esc(authorUrl)}" target="_blank" rel="noopener noreferrer" class="font-medium text-[var(--color-primary)] hover:underline">${esc(c.author_name)}</a>`
+          : `<span class="font-medium">${esc(c.author_name)}</span>`;
+        const time = new Date(c.created_at).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+        return `
+          <div class="${isReply ? "ml-8 border-l-2 border-[var(--color-border)] pl-4" : "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4"}">
+            <div class="flex items-center justify-between">
+              <div class="text-sm">${nameDisplay}</div>
+              <div class="text-xs text-[var(--color-text-tertiary)]">${time}</div>
+            </div>
+            <p class="mt-2 text-sm leading-relaxed">${esc(c.content)}</p>
+            <button type="button" data-reply-id="${esc(String(c.id))}" data-reply-name="${esc(c.author_name)}" class="mt-2 text-xs text-[var(--color-primary)] hover:underline">回复</button>
+            ${childReplies.map((r) => renderComment(r, true)).join("")}
+          </div>
+        `;
+      }
+
+      list.innerHTML = rootComments.map((c) => renderComment(c, false)).join("");
+      list.onclick = (event) => {
+        const target = event.target instanceof Element
+          ? event.target.closest("[data-reply-id]")
+          : null;
+        if (!(target instanceof HTMLElement)) return;
+        const parentId = Number(target.dataset.replyId);
+        if (Number.isInteger(parentId) && parentId > 0) {
+          replyTo(parentId, target.dataset.replyName || "");
+        }
+      };
+    } catch {
+      list.innerHTML = '<div class="py-4 text-center text-sm text-[var(--color-text-tertiary)]">评论加载失败，<button onclick="loadComments()" class="text-[var(--color-primary)] hover:underline">点击重试</button></div>';
+    }
+  }
+
+  function esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function safeExternalUrl(value) {
+    if (!value) return null;
+    try {
+      const url = new URL(value, window.location.origin);
+      return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ── 回复功能 ──
+  window.replyTo = function (parentId, name) {
+    const form = document.getElementById("comment-form");
+    const parentInput = form.querySelector('[name="parent_id"]');
+    parentInput.value = parentId;
+    const statusEl = document.getElementById("comment-status");
+    statusEl.textContent = `回复 ${name}（点击取消）`;
+    statusEl.style.cursor = "pointer";
+    statusEl.onclick = () => {
+      parentInput.value = "";
+      statusEl.textContent = "";
+      statusEl.onclick = null;
+      statusEl.style.cursor = "";
+    };
+    form.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ── 提交评论 ──
+  const form = document.getElementById("comment-form");
+  const contentInput = form?.querySelector('[name="content"]');
+  const countEl = document.getElementById("comment-count");
+  contentInput?.addEventListener("input", () => {
+    if (countEl) countEl.textContent = `${contentInput.value.length} / 2000`;
+  });
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    const statusEl = document.getElementById("comment-status");
+    btn.disabled = true;
+    btn.textContent = "提交中…";
+    statusEl.textContent = "";
+
+    const fd = new FormData(form);
+    const payload = {
+      post_id: parseInt(fd.get("post_id")),
+      parent_id: fd.get("parent_id") ? parseInt(fd.get("parent_id")) : null,
+      author_name: fd.get("author_name"),
+      author_email: fd.get("author_email") || null,
+      author_url: fd.get("author_url") || null,
+      content: fd.get("content"),
+    };
+
+    if (fd.get("website")) {
+      statusEl.textContent = "提交失败，请稍后重试";
+      btn.disabled = false;
+      btn.textContent = "提交评论";
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        statusEl.textContent = "✓ " + data.data.message;
+        statusEl.style.color = "var(--color-success)";
+        form.reset();
+        // 清除回复状态
+        const parentInput = form.querySelector('[name="parent_id"]');
+        parentInput.value = "";
+        // 重新加载评论列表
+        if (data.data.status === "approved") {
+          loadComments();
+        }
+      } else {
+        statusEl.textContent = data.error?.message || "提交失败";
+        statusEl.style.color = "var(--color-danger)";
+      }
+    } catch {
+      statusEl.textContent = "网络错误，请重试";
+      statusEl.style.color = "var(--color-danger)";
+    }
+
+    btn.disabled = false;
+    btn.textContent = "提交评论";
+    setTimeout(() => { statusEl.textContent = ""; }, 5000);
+  });
+
+  // ── 初始化 ──
+  loadComments();
+</script>

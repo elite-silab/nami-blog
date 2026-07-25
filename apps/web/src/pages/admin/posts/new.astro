@@ -1,0 +1,255 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import AdminPostEditor from "@/components/AdminPostEditor.astro";
+---
+
+<AdminLayout title="新建文章">
+  <AdminPostEditor mode="create" />
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+    import {
+      applyMarkdownAction,
+      getContentStats,
+      slugifyTitle,
+      type MarkdownAction,
+    } from "@/lib/editor";
+
+    const DRAFT_KEY = "nami-new-post-draft";
+    const form = document.getElementById("post-form") as HTMLFormElement;
+    const title = document.getElementById("title") as HTMLInputElement;
+    const content = document.getElementById("content") as HTMLTextAreaElement;
+    const slug = document.getElementById("slug") as HTMLInputElement;
+    const status = document.getElementById("save-status") as HTMLSpanElement;
+    const localStatus = document.getElementById("local-draft-status") as HTMLSpanElement;
+    const actionButtons = [
+      document.getElementById("btn-draft") as HTMLButtonElement,
+      document.getElementById("btn-publish") as HTMLButtonElement,
+    ];
+    let slugTouched = false;
+    let hasUnsavedChanges = false;
+    let draftTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function escapeHtml(value: string) {
+      const element = document.createElement("div");
+      element.textContent = value;
+      return element.innerHTML;
+    }
+
+    function showNotice(message: string, kind: "error" | "success" = "error") {
+      const notice = document.getElementById("editor-notice")!;
+      notice.textContent = message;
+      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${kind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`;
+    }
+
+    function updateStats() {
+      const stats = getContentStats(content.value);
+      document.getElementById("word-count")!.textContent = String(stats.characters);
+      document.getElementById("read-time")!.textContent = String(stats.readingMinutes);
+    }
+
+    function selectedTagIds() {
+      return Array.from(
+        document.querySelectorAll<HTMLInputElement>(".tag-checkbox:checked"),
+      ).map((checkbox) => Number(checkbox.value));
+    }
+
+    function collectDraft() {
+      return {
+        savedAt: new Date().toISOString(),
+        title: title.value,
+        content: content.value,
+        slug: slug.value,
+        excerpt: (document.getElementById("excerpt") as HTMLTextAreaElement).value,
+        cover_url: (document.getElementById("cover_url") as HTMLInputElement).value,
+        category_id: (document.getElementById("category_id") as HTMLSelectElement).value,
+        tag_ids: selectedTagIds(),
+        is_pinned: (document.getElementById("is_pinned") as HTMLInputElement).checked,
+        is_public: (document.getElementById("is_public") as HTMLInputElement).checked,
+      };
+    }
+
+    function persistDraft() {
+      const draft = collectDraft();
+      if (!draft.title && !draft.content) {
+        sessionStorage.removeItem(DRAFT_KEY);
+        localStatus.textContent = "Markdown";
+        return;
+      }
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      localStatus.textContent = `已暂存 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+    }
+
+    function scheduleDraft() {
+      hasUnsavedChanges = true;
+      status.textContent = "有未提交的修改";
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(persistDraft, 500);
+    }
+
+    function applyDraft(draft: ReturnType<typeof collectDraft>) {
+      title.value = draft.title || "";
+      content.value = draft.content || "";
+      slug.value = draft.slug || "";
+      slugTouched = Boolean(draft.slug);
+      (document.getElementById("excerpt") as HTMLTextAreaElement).value = draft.excerpt || "";
+      (document.getElementById("cover_url") as HTMLInputElement).value = draft.cover_url || "";
+      (document.getElementById("category_id") as HTMLSelectElement).value = draft.category_id || "";
+      (document.getElementById("is_pinned") as HTMLInputElement).checked = Boolean(draft.is_pinned);
+      (document.getElementById("is_public") as HTMLInputElement).checked = draft.is_public !== false;
+      const selected = new Set(draft.tag_ids || []);
+      document.querySelectorAll<HTMLInputElement>(".tag-checkbox").forEach((checkbox) => {
+        checkbox.checked = selected.has(Number(checkbox.value));
+      });
+      updateStats();
+      scheduleDraft();
+      showNotice("草稿已恢复，可以继续写作。", "success");
+      document.getElementById("draft-banner")?.classList.add("hidden");
+    }
+
+    async function loadMeta() {
+      const [categoryResponse, tagResponse] = await Promise.all([
+        adminFetch(`${API_BASE}/api/admin/categories`),
+        adminFetch(`${API_BASE}/api/admin/tags`),
+      ]);
+      if (categoryResponse.status === 401 || tagResponse.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
+      if (!categoryResponse.ok || !tagResponse.ok) {
+        throw new Error("分类和标签加载失败，请刷新后重试");
+      }
+
+      const categories = (await categoryResponse.json()).data || [];
+      const categorySelect = document.getElementById("category_id") as HTMLSelectElement;
+      categories.forEach((category: { id: number; name: string }) => {
+        const option = document.createElement("option");
+        option.value = String(category.id);
+        option.textContent = category.name;
+        categorySelect.appendChild(option);
+      });
+
+      const tags = (await tagResponse.json()).data || [];
+      const container = document.getElementById("tags-container")!;
+      container.innerHTML = tags.length
+        ? tags.map((tag: { id: number; name: string }) => `
+          <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--color-bg-tertiary)] px-2.5 py-1 text-xs">
+            <input type="checkbox" value="${tag.id}" class="tag-checkbox" /> ${escapeHtml(tag.name)}
+          </label>`).join("")
+        : '<span class="text-xs text-[var(--color-text-tertiary)]">暂无标签，可稍后在标签管理中创建</span>';
+    }
+
+    function setupDraftRecovery() {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      try {
+        const draft = JSON.parse(raw) as ReturnType<typeof collectDraft>;
+        const banner = document.getElementById("draft-banner")!;
+        banner.classList.remove("hidden");
+        banner.classList.add("flex");
+        document.getElementById("draft-time")!.textContent = draft.savedAt
+          ? `暂存于 ${new Date(draft.savedAt).toLocaleString("zh-CN")}`
+          : "可以恢复上次未提交的内容";
+        document.getElementById("btn-restore-draft")?.addEventListener("click", () => applyDraft(draft));
+        document.getElementById("btn-discard-draft")?.addEventListener("click", () => {
+          sessionStorage.removeItem(DRAFT_KEY);
+          banner.classList.add("hidden");
+        });
+      } catch {
+        sessionStorage.removeItem(DRAFT_KEY);
+      }
+    }
+
+    async function savePost(postStatus: "draft" | "published") {
+      if (!title.value.trim()) {
+        showNotice("请先填写文章标题。");
+        title.focus();
+        return;
+      }
+
+      actionButtons.forEach((button) => { button.disabled = true; });
+      status.textContent = postStatus === "published" ? "正在发布…" : "正在保存草稿…";
+      const data = {
+        title: title.value.trim(),
+        slug: slug.value.trim() || slugifyTitle(title.value),
+        content: content.value,
+        excerpt: (document.getElementById("excerpt") as HTMLTextAreaElement).value,
+        cover_url: (document.getElementById("cover_url") as HTMLInputElement).value.trim() || null,
+        category_id: (document.getElementById("category_id") as HTMLSelectElement).value || null,
+        tag_ids: selectedTagIds(),
+        is_pinned: (document.getElementById("is_pinned") as HTMLInputElement).checked ? 1 : 0,
+        is_public: (document.getElementById("is_public") as HTMLInputElement).checked ? 1 : 0,
+        status: postStatus,
+      };
+
+      try {
+        const response = await adminFetch(`${API_BASE}/api/admin/posts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (response.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "保存失败");
+
+        hasUnsavedChanges = false;
+        sessionStorage.removeItem(DRAFT_KEY);
+        status.textContent = postStatus === "published" ? "发布成功，正在打开…" : "草稿已保存，正在打开…";
+        window.location.href = `/admin/posts/edit?id=${result.data.id}`;
+      } catch (error) {
+        const message = error instanceof TypeError
+          ? "无法连接 Workers API，请确认服务正在运行"
+          : error instanceof Error ? error.message : "保存失败，请稍后重试";
+        showNotice(message);
+        status.textContent = "保存失败，本地草稿仍在";
+        actionButtons.forEach((button) => { button.disabled = false; });
+      }
+    }
+
+    content.addEventListener("input", updateStats);
+    title.addEventListener("input", () => {
+      if (!slugTouched) slug.value = slugifyTitle(title.value);
+    });
+    slug.addEventListener("input", () => { slugTouched = true; });
+    form.addEventListener("input", scheduleDraft);
+    form.addEventListener("change", scheduleDraft);
+    form.addEventListener("submit", (event) => event.preventDefault());
+
+    document.querySelectorAll<HTMLButtonElement>("[data-markdown]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const result = applyMarkdownAction(
+          content.value,
+          content.selectionStart,
+          content.selectionEnd,
+          button.dataset.markdown as MarkdownAction,
+        );
+        content.value = result.value;
+        content.focus();
+        content.setSelectionRange(result.selectionStart, result.selectionEnd);
+        updateStats();
+        scheduleDraft();
+      });
+    });
+
+    document.getElementById("btn-draft")?.addEventListener("click", () => savePost("draft"));
+    document.getElementById("btn-publish")?.addEventListener("click", () => savePost("published"));
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        savePost("draft");
+      }
+    });
+    window.addEventListener("beforeunload", (event) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+    });
+
+    loadMeta()
+      .then(setupDraftRecovery)
+      .catch(() => showNotice("无法连接 Workers API，请确认服务正在运行后重试。"));
+    updateStats();
+  </script>
+</AdminLayout>

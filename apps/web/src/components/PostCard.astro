@@ -1,0 +1,40 @@
+---
+interface Props {
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  coverUrl?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+  index?: number;
+  pinned?: boolean;
+}
+
+const { title, slug, excerpt, coverUrl, publishedAt, createdAt, index = 0, pinned = false } = Astro.props;
+const date = new Date(publishedAt || createdAt).toLocaleDateString("zh-CN", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+---
+
+<a href={`/blog/${slug}`} class="group block rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 transition duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:shadow-lg hover:shadow-[var(--theme-glow)]">
+  <div class="flex gap-5">
+    <div class="flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-bg-secondary)] sm:h-32 sm:w-32">
+      {coverUrl ? (
+        <img src={coverUrl} alt="" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+      ) : (
+        <span class="font-display text-4xl text-[var(--color-primary)]/30">{String(index + 1).padStart(2, "0")}</span>
+      )}
+    </div>
+    <div class="min-w-0 flex-1 py-1">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-tertiary)]">
+        {pinned && <span class="rounded-full bg-[var(--color-primary-light)] px-2 py-1 font-semibold text-[var(--color-primary)]">📌 置顶</span>}
+        <time datetime={publishedAt || createdAt}>{date}</time>
+      </div>
+      <h2 class="mt-2 line-clamp-2 font-display text-2xl font-semibold leading-tight tracking-[-0.015em] group-hover:text-[var(--color-primary)]">{title}</h2>
+      {excerpt && <p class="mt-2 line-clamp-2 text-sm leading-6 text-[var(--color-text-secondary)]">{excerpt}</p>}
+      <span class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] opacity-0 transition group-hover:opacity-100">阅读全文 <span class="transition-transform group-hover:translate-x-1">→</span></span>
+    </div>
+  </div>
+</a>

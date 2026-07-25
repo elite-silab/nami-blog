@@ -1,0 +1,40 @@
+# ===========================================
+# Nami 娜美 CF 博客 — Workers 配置
+# ===========================================
+
+name = "nami-blog-api"
+main = "src/index.ts"
+compatibility_date = "2025-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ===========================================
+# Production 环境
+# ===========================================
+
+[vars]
+SITE_NAME = "Nami Blog"
+CORS_ORIGIN = "https://nami-blog.pages.dev"
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "nami-blog"
+database_id = "<replace-with-production-d1-id>"
+migrations_dir = "../../migrations"
+
+# ===========================================
+# Staging 环境
+# ===========================================
+
+[env.staging]
+name = "nami-blog-api-staging"
+
+[env.staging.vars]
+SITE_NAME = "Nami Blog (Staging)"
+CORS_ORIGIN = "https://nami-blog-staging.pages.dev"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "nami-blog-staging"
+database_id = "<replace-with-staging-d1-id>"
+migrations_dir = "../../migrations"

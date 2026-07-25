@@ -1,0 +1,138 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="友链管理">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">友链列表</h2>
+    <button id="btn-add" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)]">+ 添加友链</button>
+  </div>
+
+  <div id="friends-table" class="mt-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">加载中…</div>
+
+  <!-- 弹窗 -->
+  <dialog id="modal" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-xl backdrop:bg-black/50">
+    <form id="friend-form" class="w-80 space-y-4">
+      <h3 id="modal-title" class="text-lg font-semibold">添加友链</h3>
+      <input type="hidden" id="edit-id" />
+      <div>
+        <label class="block text-sm font-medium">站名 *</label>
+        <input type="text" id="name" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">URL *</label>
+        <input type="url" id="url" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">头像 URL</label>
+        <input type="url" id="avatar_url" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">描述</label>
+        <textarea id="description" rows="2" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"></textarea>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="modal-cancel" class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm">取消</button>
+        <button type="submit" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm text-white">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+
+    const statusLabels: Record<string, string> = { pending: "待审核", approved: "已通过", rejected: "已拒绝" };
+    const statusColors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-700", approved: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-700" };
+
+    function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    async function loadFriends() {
+      const table = document.getElementById("friends-table")!;
+      try {
+        const res = await adminFetch(`${API_BASE}/api/admin/friends`);
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const { data } = await res.json();
+
+        if (!data || data.length === 0) {
+          table.innerHTML = `<div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-12 text-center"><div class="text-4xl">🔗</div><div class="mt-2 text-[var(--color-text-tertiary)]">暂无友链</div></div>`;
+          return;
+        }
+
+        table.innerHTML = `<div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+          <table class="w-full text-sm"><thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+            <tr><th class="px-4 py-3 text-left font-medium">站点</th><th class="px-4 py-3 text-left font-medium">URL</th><th class="px-4 py-3 text-left font-medium">描述</th><th class="px-4 py-3 text-center font-medium">状态</th><th class="px-4 py-3 text-center font-medium">排序</th><th class="px-4 py-3 text-center font-medium">链接检查</th><th class="px-4 py-3 text-right font-medium">操作</th></tr>
+          </thead><tbody class="divide-y divide-[var(--color-border)]">
+            ${data.map((f: any) => `<tr class="hover:bg-[var(--color-bg-secondary)]">
+              <td class="px-4 py-3"><div class="flex items-center gap-2">${f.avatar_url ? `<img src="${esc(f.avatar_url)}" alt="" class="h-6 w-6 rounded-full" />` : ""}<span class="font-medium">${esc(f.name)}</span></div></td>
+              <td class="px-4 py-3"><a href="${esc(f.url)}" target="_blank" rel="noopener" class="text-[var(--color-primary)] hover:underline">${esc(f.url)}</a></td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${f.description || "—"}</td>
+              <td class="px-4 py-3 text-center"><span class="rounded-full px-2 py-0.5 text-xs ${statusColors[f.status] || ""}">${statusLabels[f.status] || f.status}</span></td>
+              <td class="px-4 py-3 text-center">${f.sort_order}</td>
+              <td class="px-4 py-3 text-center">${f.check_url_ok == null ? "—" : f.check_url_ok === 1 ? '<span class="text-[var(--color-success)]">OK</span>' : '<span class="text-[var(--color-danger)]">FAIL</span>'}</td>
+              <td class="px-4 py-3 text-right"><div class="flex items-center justify-end gap-2">
+                ${f.status === "pending" ? `<button data-action="approve" data-id="${f.id}" class="text-[var(--color-success)] hover:underline">通过</button>` : ""}
+                <button data-edit-id="${f.id}" data-edit-name="${esc(f.name)}" data-edit-url="${esc(f.url)}" data-edit-avatar="${esc(f.avatar_url || "")}" data-edit-desc="${esc(f.description || "")}" class="text-[var(--color-primary)] hover:underline">编辑</button>
+                <button data-delete-id="${f.id}" data-delete-name="${esc(f.name)}" class="text-[var(--color-danger)] hover:underline">删除</button>
+              </div></td>
+            </tr>`).join("")}
+          </tbody></table></div>`;
+      } catch {
+        table.innerHTML = '<div class="py-8 text-center text-[var(--color-danger)]">加载失败</div>';
+      }
+    }
+
+    const modal = document.getElementById("modal") as HTMLDialogElement;
+    const form = document.getElementById("friend-form") as HTMLFormElement;
+
+    document.getElementById("btn-add")!.addEventListener("click", () => {
+      (document.getElementById("modal-title") as HTMLElement).textContent = "添加友链";
+      (document.getElementById("edit-id") as HTMLInputElement).value = "";
+      form.reset();
+      modal.showModal();
+    });
+
+    document.getElementById("modal-cancel")!.addEventListener("click", () => modal.close());
+
+    document.addEventListener("click", async (e) => {
+      const target = e.target as HTMLElement;
+      if (target.dataset.editId) {
+        (document.getElementById("modal-title") as HTMLElement).textContent = "编辑友链";
+        (document.getElementById("edit-id") as HTMLInputElement).value = target.dataset.editId!;
+        (document.getElementById("name") as HTMLInputElement).value = target.dataset.editName!;
+        (document.getElementById("url") as HTMLInputElement).value = target.dataset.editUrl!;
+        (document.getElementById("avatar_url") as HTMLInputElement).value = target.dataset.editAvatar!;
+        (document.getElementById("description") as HTMLTextAreaElement).value = target.dataset.editDesc!;
+        modal.showModal();
+      }
+      if (target.dataset.action === "approve") {
+        await adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.id}/status`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({ status: "approved" }),
+        }).then((r) => r.ok ? location.reload() : alert("操作失败"));
+      }
+      if (target.dataset.deleteId) {
+        if (!confirm(`确认删除友链「${target.dataset.deleteName}」？`)) return;
+        adminFetch(`${API_BASE}/api/admin/friends/${target.dataset.deleteId}`, { method: "DELETE" })
+          .then((r) => r.ok ? location.reload() : alert("删除失败"));
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const editId = (document.getElementById("edit-id") as HTMLInputElement).value;
+      const data = {
+        name: (document.getElementById("name") as HTMLInputElement).value,
+        url: (document.getElementById("url") as HTMLInputElement).value,
+        avatar_url: (document.getElementById("avatar_url") as HTMLInputElement).value || null,
+        description: (document.getElementById("description") as HTMLTextAreaElement).value,
+      };
+      const url = editId ? `${API_BASE}/api/admin/friends/${editId}` : `${API_BASE}/api/admin/friends`;
+      const method = editId ? "PUT" : "POST";
+      const res = await adminFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (res.ok) { modal.close(); location.reload(); }
+      else { const err = await res.json(); alert(err.error?.message || "保存失败"); }
+    });
+
+    loadFriends();
+  </script>
+</AdminLayout>

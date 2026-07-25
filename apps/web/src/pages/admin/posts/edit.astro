@@ -1,0 +1,229 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import AdminPostEditor from "@/components/AdminPostEditor.astro";
+---
+
+<AdminLayout title="编辑文章">
+  <AdminPostEditor mode="edit" />
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+    import {
+      applyMarkdownAction,
+      getContentStats,
+      type MarkdownAction,
+    } from "@/lib/editor";
+
+    const postId = new URLSearchParams(window.location.search).get("id");
+    const form = document.getElementById("post-form") as HTMLFormElement;
+    const title = document.getElementById("title") as HTMLInputElement;
+    const content = document.getElementById("content") as HTMLTextAreaElement;
+    const saveButton = document.getElementById("btn-save") as HTMLButtonElement;
+    const deleteButton = document.getElementById("btn-delete") as HTMLButtonElement;
+    const saveStatus = document.getElementById("save-status") as HTMLSpanElement;
+    let hydrated = false;
+    let hasUnsavedChanges = false;
+
+    function escapeHtml(value: string) {
+      const element = document.createElement("div");
+      element.textContent = value;
+      return element.innerHTML;
+    }
+
+    function showNotice(message: string, kind: "error" | "success" = "error") {
+      const notice = document.getElementById("editor-notice")!;
+      notice.textContent = message;
+      notice.className = `mb-5 rounded-xl border px-4 py-3 text-sm ${kind === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`;
+    }
+
+    function updateStats() {
+      const stats = getContentStats(content.value);
+      document.getElementById("word-count")!.textContent = String(stats.characters);
+      document.getElementById("read-time")!.textContent = String(stats.readingMinutes);
+    }
+
+    function markDirty() {
+      if (!hydrated) return;
+      hasUnsavedChanges = true;
+      saveStatus.textContent = "有未保存的修改";
+      saveStatus.style.color = "var(--color-warning)";
+    }
+
+    async function loadPost() {
+      if (!postId || !/^\d+$/.test(postId)) {
+        showNotice("编辑地址缺少有效的文章 ID，请从文章列表重新进入。");
+        saveStatus.textContent = "无法载入文章";
+        saveButton.disabled = true;
+        deleteButton.disabled = true;
+        return;
+      }
+
+      try {
+        const [postResponse, categoryResponse, tagResponse] = await Promise.all([
+          adminFetch(`${API_BASE}/api/admin/posts/${postId}`),
+          adminFetch(`${API_BASE}/api/admin/categories`),
+          adminFetch(`${API_BASE}/api/admin/tags`),
+        ]);
+        if ([postResponse, categoryResponse, tagResponse].some((response) => response.status === 401)) {
+          window.location.href = "/admin/login";
+          return;
+        }
+        if (postResponse.status === 404) throw new Error("文章不存在或已经删除");
+        if (!postResponse.ok || !categoryResponse.ok || !tagResponse.ok) {
+          throw new Error("文章资料加载失败，请刷新后重试");
+        }
+
+        const post = (await postResponse.json()).data;
+        title.value = post.title || "";
+        content.value = post.content || "";
+        (document.getElementById("slug") as HTMLInputElement).value = post.slug || "";
+        (document.getElementById("excerpt") as HTMLTextAreaElement).value = post.excerpt || "";
+        (document.getElementById("cover_url") as HTMLInputElement).value = post.cover_url || "";
+        (document.getElementById("is_pinned") as HTMLInputElement).checked = post.is_pinned === 1;
+        (document.getElementById("is_public") as HTMLInputElement).checked = post.is_public === 1;
+        (document.getElementById("status") as HTMLSelectElement).value = post.status || "draft";
+
+        const categories = (await categoryResponse.json()).data || [];
+        const categorySelect = document.getElementById("category_id") as HTMLSelectElement;
+        const currentCategory = post.categories?.[0]?.id;
+        categories.forEach((category: { id: number; name: string }) => {
+          const option = document.createElement("option");
+          option.value = String(category.id);
+          option.textContent = category.name;
+          option.selected = category.id === currentCategory;
+          categorySelect.appendChild(option);
+        });
+
+        const tags = (await tagResponse.json()).data || [];
+        const currentTags = new Set<number>((post.tags || []).map((tag: { id: number }) => tag.id));
+        const tagsContainer = document.getElementById("tags-container")!;
+        tagsContainer.innerHTML = tags.length
+          ? tags.map((tag: { id: number; name: string }) => `
+            <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--color-bg-tertiary)] px-2.5 py-1 text-xs">
+              <input type="checkbox" value="${tag.id}" class="tag-checkbox" ${currentTags.has(tag.id) ? "checked" : ""} /> ${escapeHtml(tag.name)}
+            </label>`).join("")
+          : '<span class="text-xs text-[var(--color-text-tertiary)]">暂无标签</span>';
+
+        updateStats();
+        hydrated = true;
+        saveStatus.textContent = "已载入，修改后请保存";
+        saveStatus.style.color = "var(--color-text-secondary)";
+      } catch (error) {
+        const message = error instanceof TypeError
+          ? "无法连接 Workers API，请确认服务正在运行"
+          : error instanceof Error ? error.message : "文章加载失败";
+        showNotice(message);
+        saveStatus.textContent = "载入失败";
+        saveButton.disabled = true;
+      }
+    }
+
+    async function savePost() {
+      if (!postId || !hydrated) return;
+      if (!title.value.trim()) {
+        showNotice("文章标题不能为空。");
+        title.focus();
+        return;
+      }
+
+      const tagIds = Array.from(
+        document.querySelectorAll<HTMLInputElement>(".tag-checkbox:checked"),
+      ).map((checkbox) => Number(checkbox.value));
+      const data = {
+        title: title.value.trim(),
+        slug: (document.getElementById("slug") as HTMLInputElement).value.trim(),
+        content: content.value,
+        excerpt: (document.getElementById("excerpt") as HTMLTextAreaElement).value,
+        cover_url: (document.getElementById("cover_url") as HTMLInputElement).value.trim() || null,
+        category_id: (document.getElementById("category_id") as HTMLSelectElement).value || null,
+        tag_ids: tagIds,
+        is_pinned: (document.getElementById("is_pinned") as HTMLInputElement).checked ? 1 : 0,
+        is_public: (document.getElementById("is_public") as HTMLInputElement).checked ? 1 : 0,
+        status: (document.getElementById("status") as HTMLSelectElement).value,
+      };
+
+      saveButton.disabled = true;
+      saveStatus.textContent = "正在保存修改…";
+      saveStatus.style.color = "var(--color-text-secondary)";
+      try {
+        const response = await adminFetch(`${API_BASE}/api/admin/posts/${postId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (response.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "保存失败");
+
+        hasUnsavedChanges = false;
+        saveStatus.textContent = `✓ 已保存于 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+        saveStatus.style.color = "var(--color-success)";
+        showNotice("文章修改已保存。", "success");
+      } catch (error) {
+        const message = error instanceof TypeError
+          ? "无法连接 Workers API，请确认服务正在运行"
+          : error instanceof Error ? error.message : "保存失败，请稍后重试";
+        showNotice(message);
+        saveStatus.textContent = "保存失败，修改仍保留在页面中";
+        saveStatus.style.color = "var(--color-danger)";
+      } finally {
+        saveButton.disabled = false;
+      }
+    }
+
+    async function deletePost() {
+      if (!postId || !confirm(`确认删除文章「${title.value || "未命名文章"}」？此操作不可撤销。`)) return;
+      deleteButton.disabled = true;
+      saveStatus.textContent = "正在删除…";
+      try {
+        const response = await adminFetch(`${API_BASE}/api/admin/posts/${postId}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) throw new Error("删除失败");
+        hasUnsavedChanges = false;
+        window.location.href = "/admin/posts";
+      } catch {
+        showNotice("删除失败，请稍后重试。");
+        saveStatus.textContent = "删除失败";
+        deleteButton.disabled = false;
+      }
+    }
+
+    content.addEventListener("input", updateStats);
+    form.addEventListener("input", markDirty);
+    form.addEventListener("change", markDirty);
+    form.addEventListener("submit", (event) => event.preventDefault());
+    document.querySelectorAll<HTMLButtonElement>("[data-markdown]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const result = applyMarkdownAction(
+          content.value,
+          content.selectionStart,
+          content.selectionEnd,
+          button.dataset.markdown as MarkdownAction,
+        );
+        content.value = result.value;
+        content.focus();
+        content.setSelectionRange(result.selectionStart, result.selectionEnd);
+        updateStats();
+        markDirty();
+      });
+    });
+    saveButton.addEventListener("click", savePost);
+    deleteButton.addEventListener("click", deletePost);
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        savePost();
+      }
+    });
+    window.addEventListener("beforeunload", (event) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+    });
+
+    loadPost();
+  </script>
+</AdminLayout>

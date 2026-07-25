@@ -1,0 +1,203 @@
+/**
+ * 公开 API 路由 — 前台博客数据（无需鉴权）
+ */
+import { Hono } from "hono";
+import type { Env } from "../index";
+import { parsePagination } from "../lib/pagination";
+
+export const publicRoutes = new Hono<Env>();
+
+publicRoutes.use("*", async (c, next) => {
+  await next();
+  if (c.req.method === "GET" && c.res.ok) {
+    c.header("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+  }
+});
+
+// ── GET /posts — 已发布文章列表（分页 + 筛选 + 搜索） ──
+publicRoutes.get("/posts", async (c) => {
+  const DB = c.env.DB;
+  const pagination = parsePagination(c.req.query("page"), c.req.query("limit"));
+  if (!pagination) {
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "分页参数无效，limit 最大为 100" } },
+      400,
+    );
+  }
+  const { page, limit, offset } = pagination;
+  const category = c.req.query("category") || "";
+  const tag = c.req.query("tag") || "";
+  const q = c.req.query("q") || "";
+
+  if (category.length > 100 || tag.length > 100 || q.length > 200) {
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "筛选条件过长" } },
+      400,
+    );
+  }
+
+  let whereClause = "WHERE p.status = 'published' AND p.is_public = 1 AND p.deleted_at IS NULL";
+  const bindings: (string | number)[] = [];
+
+  if (category) {
+    whereClause +=
+      " AND p.id IN (SELECT pc.post_id FROM post_categories pc JOIN categories c ON c.id = pc.category_id WHERE c.slug = ? AND c.deleted_at IS NULL)";
+    bindings.push(category);
+  }
+
+  if (tag) {
+    whereClause +=
+      " AND p.id IN (SELECT pt.post_id FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.slug = ? AND t.deleted_at IS NULL)";
+    bindings.push(tag);
+  }
+
+  if (q) {
+    whereClause += " AND (p.title LIKE ? OR p.content LIKE ?)";
+    const like = `%${q}%`;
+    bindings.push(like, like);
+  }
+
+  const [posts, countResult] = await Promise.all([
+    DB.prepare(
+      `SELECT p.id, p.title, p.slug, p.excerpt, p.cover_url, p.status, p.is_pinned, p.published_at, p.created_at
+       FROM posts p ${whereClause}
+       ORDER BY p.is_pinned DESC, p.published_at DESC LIMIT ? OFFSET ?`,
+    )
+      .bind(...bindings, limit, offset)
+      .all(),
+    DB.prepare(`SELECT COUNT(*) as total FROM posts p ${whereClause}`)
+      .bind(...bindings)
+      .first<{ total: number }>(),
+  ]);
+
+  return c.json({
+    data: posts.results,
+    meta: { page, limit, total: countResult?.total ?? 0 },
+  });
+});
+
+// ── GET /posts/:slug — 文章详情（+浏览计数 + 分类标签 + 前后篇） ──
+publicRoutes.get("/posts/:slug", async (c) => {
+  const DB = c.env.DB;
+  const slug = c.req.param("slug");
+
+  const post = await DB.prepare(
+    "SELECT id, title, content, content_html, excerpt, cover_url, view_count, word_count, published_at, created_at, updated_at FROM posts WHERE slug = ? AND status = 'published' AND is_public = 1 AND deleted_at IS NULL LIMIT 1",
+  )
+    .bind(slug)
+    .first();
+
+  if (!post) {
+    return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
+  }
+
+  const postId = (post as { id: number }).id;
+
+  // 增加浏览量
+  await DB.prepare("UPDATE posts SET view_count = view_count + 1 WHERE id = ?")
+    .bind(postId)
+    .run();
+
+  // 获取分类和标签
+  const [categories, tags, prevPost, nextPost] = await Promise.all([
+    DB.prepare(
+      `SELECT c.id, c.name, c.slug FROM categories c
+       JOIN post_categories pc ON pc.category_id = c.id
+       WHERE pc.post_id = ?`,
+    )
+      .bind(postId)
+      .all(),
+    DB.prepare(
+      `SELECT t.id, t.name, t.slug, t.color FROM tags t
+       JOIN post_tags pt ON pt.tag_id = t.id
+       WHERE pt.post_id = ?`,
+    )
+      .bind(postId)
+      .all(),
+    DB.prepare(
+      `SELECT id, title, slug FROM posts
+       WHERE status = 'published' AND is_public = 1 AND deleted_at IS NULL AND published_at < (SELECT published_at FROM posts WHERE id = ?)
+       ORDER BY published_at DESC LIMIT 1`,
+    )
+      .bind(postId)
+      .first(),
+    DB.prepare(
+      `SELECT id, title, slug FROM posts
+       WHERE status = 'published' AND is_public = 1 AND deleted_at IS NULL AND published_at > (SELECT published_at FROM posts WHERE id = ?)
+       ORDER BY published_at ASC LIMIT 1`,
+    )
+      .bind(postId)
+      .first(),
+  ]);
+
+  return c.json({
+    data: {
+      ...post,
+      categories: categories.results,
+      tags: tags.results,
+      prev: prevPost || null,
+      next: nextPost || null,
+    },
+  });
+});
+
+// ── GET /categories — 分类列表 ──
+publicRoutes.get("/categories", async (c) => {
+  const categories = await c.env.DB.prepare(
+    `SELECT c.id, c.name, c.slug, c.description, c.sort_order,
+       (SELECT COUNT(*) FROM post_categories pc JOIN posts p ON p.id = pc.post_id
+        WHERE pc.category_id = c.id AND p.status = 'published' AND p.is_public = 1 AND p.deleted_at IS NULL) as post_count
+     FROM categories c WHERE c.deleted_at IS NULL ORDER BY c.sort_order, c.id`,
+  ).all();
+
+  return c.json({ data: categories.results });
+});
+
+// ── GET /tags — 标签列表 ──
+publicRoutes.get("/tags", async (c) => {
+  const tags = await c.env.DB.prepare(
+    `SELECT t.id, t.name, t.slug, t.color,
+       (SELECT COUNT(*) FROM post_tags pt JOIN posts p ON p.id = pt.post_id
+        WHERE pt.tag_id = t.id AND p.status = 'published' AND p.is_public = 1 AND p.deleted_at IS NULL) as post_count
+     FROM tags t WHERE t.deleted_at IS NULL ORDER BY t.name`,
+  ).all();
+
+  return c.json({ data: tags.results });
+});
+
+// ── GET /friends — 友链列表（仅已通过审核的） ──
+publicRoutes.get("/friends", async (c) => {
+  const friends = await c.env.DB.prepare(
+    "SELECT id, name, url, avatar_url, description FROM friends WHERE status = 'approved' AND deleted_at IS NULL ORDER BY sort_order, created_at DESC",
+  ).all();
+
+  return c.json({ data: friends.results });
+});
+
+// ── GET /settings — 公开站点设置（仅返回安全的非敏感配置） ──
+publicRoutes.get("/settings", async (c) => {
+  const DB = c.env.DB;
+  const publicKeys = [
+    "site_name",
+    "site_description",
+    "site_about",
+    "icp_number",
+    "social_links",
+  ];
+  const rows = await DB.prepare(
+    `SELECT key, value FROM site_settings WHERE key IN (${publicKeys.map(() => "?").join(",")})`,
+  )
+    .bind(...publicKeys)
+    .all<{ key: string; value: string }>();
+
+  const settings: Record<string, unknown> = {};
+  for (const row of rows.results) {
+    try {
+      settings[row.key] = JSON.parse(row.value);
+    } catch {
+      settings[row.key] = row.value;
+    }
+  }
+
+  return c.json({ data: settings });
+});

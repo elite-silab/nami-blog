@@ -1,0 +1,61 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+
+interface Friend {
+  id: number;
+  name: string;
+  url: string;
+  avatar_url: string | null;
+  description: string | null;
+}
+
+let friends: Friend[] = [];
+try {
+  const res = await fetch(`${apiUrl}/api/v1/friends`);
+  if (res.ok) {
+    const json = await res.json();
+    friends = json.data || [];
+  }
+} catch {}
+---
+
+<BaseLayout title="友情链接 — Nami Blog" description="Nami Blog 的朋友们">
+  <section class="mx-auto max-w-3xl px-4 py-12">
+    <h1 class="text-3xl font-bold">友情链接</h1>
+    <p class="mt-2 text-sm text-[var(--color-text-secondary)]">这些是我喜欢的博客和网站，欢迎交换友链~</p>
+
+    {friends.length === 0 ? (
+      <div class="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-16 text-center">
+        <div class="text-5xl">🔗</div>
+        <p class="mt-4 text-[var(--color-text-secondary)]">暂无友链</p>
+      </div>
+    ) : (
+      <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {friends.map((f) => (
+          <a
+            href={f.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group flex items-center gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 transition-all hover:border-[var(--color-primary)] hover:shadow-sm"
+          >
+            {f.avatar_url ? (
+              <img src={f.avatar_url} alt={f.name} class="h-12 w-12 flex-shrink-0 rounded-full object-cover" loading="lazy" />
+            ) : (
+              <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-light)] text-lg font-bold text-[var(--color-primary)]">
+                {f.name.charAt(0)}
+              </div>
+            )}
+            <div class="min-w-0 flex-1">
+              <h2 class="truncate font-semibold group-hover:text-[var(--color-primary)]">{f.name}</h2>
+              {f.description && (
+                <p class="mt-0.5 truncate text-sm text-[var(--color-text-secondary)]">{f.description}</p>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</BaseLayout>

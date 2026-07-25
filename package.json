@@ -1,0 +1,41 @@
+{
+  "name": "nami-blog",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Nami 娜美 CF 博客 — Astro SSG 前端 + Cloudflare Workers API",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elite-silab/nami-blog.git"
+  },
+  "homepage": "https://github.com/elite-silab/nami-blog#readme",
+  "bugs": {
+    "url": "https://github.com/elite-silab/nami-blog/issues"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "predev": "pnpm db:migrate",
+    "dev:api": "pnpm --filter @nami/api dev",
+    "dev:web": "pnpm --filter @nami/web dev",
+    "dev": "pnpm dev:api & pnpm dev:web",
+    "build:api": "pnpm --filter @nami/api build",
+    "build:web": "pnpm --filter @nami/web build",
+    "build": "pnpm build:api && pnpm build:web",
+    "deploy:api": "pnpm --filter @nami/api deploy",
+    "deploy:web": "pnpm --filter @nami/web build && wrangler pages deploy apps/web/dist --project-name nami-blog-web",
+    "lint": "pnpm -r lint",
+    "check": "pnpm -r typecheck && pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm --filter @nami/api test:watch",
+    "db:migrate": "pnpm --filter @nami/api db:migrate",
+    "db:seed": "pnpm --filter @nami/api db:seed",
+    "db:reset": "pnpm --filter @nami/api db:reset",
+    "db:migrate:preview": "wrangler d1 migrations apply nami-blog-preview --remote --config apps/api/wrangler.toml",
+    "db:migrate:prod": "wrangler d1 migrations apply nami-blog --remote --config apps/api/wrangler.toml"
+  }
+}

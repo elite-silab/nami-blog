@@ -1,0 +1,129 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="分类管理">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">分类列表</h2>
+    <button id="btn-add" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)]">+ 新建分类</button>
+  </div>
+
+  <div id="categories-table" class="mt-4 py-8 text-center text-sm text-[var(--color-text-tertiary)]">加载中…</div>
+
+  <!-- 新建/编辑弹窗 -->
+  <dialog id="modal" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-xl backdrop:bg-black/50">
+    <form id="category-form" class="w-80 space-y-4">
+      <h3 id="modal-title" class="text-lg font-semibold">新建分类</h3>
+      <input type="hidden" id="edit-id" />
+      <div>
+        <label class="block text-sm font-medium">名称 *</label>
+        <input type="text" id="name" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Slug *</label>
+        <input type="text" id="slug" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">描述</label>
+        <textarea id="description" rows="2" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">排序权重</label>
+        <input type="number" id="sort_order" value="0" class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="modal-cancel" class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm">取消</button>
+        <button type="submit" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm text-white">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+
+    async function loadCategories() {
+      const table = document.getElementById("categories-table")!;
+      try {
+        const res = await adminFetch(`${API_BASE}/api/admin/categories`);
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const { data } = await res.json();
+
+        if (!data || data.length === 0) {
+          table.innerHTML = `<div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-12 text-center"><div class="text-4xl">📁</div><div class="mt-2 text-[var(--color-text-tertiary)]">暂无分类</div></div>`;
+          return;
+        }
+
+        table.innerHTML = `<div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+          <table class="w-full text-sm"><thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+            <tr><th class="px-4 py-3 text-left font-medium">名称</th><th class="px-4 py-3 text-left font-medium">Slug</th><th class="px-4 py-3 text-left font-medium">描述</th><th class="px-4 py-3 text-center font-medium">排序</th><th class="px-4 py-3 text-center font-medium">文章数</th><th class="px-4 py-3 text-right font-medium">操作</th></tr>
+          </thead><tbody class="divide-y divide-[var(--color-border)]">
+            ${data.map((cat: any) => `<tr class="hover:bg-[var(--color-bg-secondary)]">
+              <td class="px-4 py-3 font-medium">${cat.parent_id ? "└ " : ""}${esc(cat.name)}</td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${esc(cat.slug)}</td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${cat.description || "—"}</td>
+              <td class="px-4 py-3 text-center">${cat.sort_order}</td>
+              <td class="px-4 py-3 text-center">${cat.post_count || 0}</td>
+              <td class="px-4 py-3 text-right">
+                <button data-edit-id="${cat.id}" data-edit-name="${esc(cat.name)}" data-edit-slug="${esc(cat.slug)}" data-edit-desc="${esc(cat.description || "")}" class="text-[var(--color-primary)] hover:underline">编辑</button>
+                <button data-delete-id="${cat.id}" data-delete-name="${esc(cat.name)}" data-delete-count="${cat.post_count || 0}" class="ml-2 text-[var(--color-danger)] hover:underline">删除</button>
+              </td>
+            </tr>`).join("")}
+          </tbody></table></div>`;
+      } catch {
+        table.innerHTML = '<div class="py-8 text-center text-[var(--color-danger)]">加载失败</div>';
+      }
+    }
+
+    function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    const modal = document.getElementById("modal") as HTMLDialogElement;
+    const form = document.getElementById("category-form") as HTMLFormElement;
+
+    document.getElementById("btn-add")!.addEventListener("click", () => {
+      (document.getElementById("modal-title") as HTMLElement).textContent = "新建分类";
+      (document.getElementById("edit-id") as HTMLInputElement).value = "";
+      form.reset();
+      modal.showModal();
+    });
+
+    document.getElementById("modal-cancel")!.addEventListener("click", () => modal.close());
+
+    document.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.dataset.editId) {
+        (document.getElementById("modal-title") as HTMLElement).textContent = "编辑分类";
+        (document.getElementById("edit-id") as HTMLInputElement).value = target.dataset.editId!;
+        (document.getElementById("name") as HTMLInputElement).value = target.dataset.editName!;
+        (document.getElementById("slug") as HTMLInputElement).value = target.dataset.editSlug!;
+        (document.getElementById("description") as HTMLTextAreaElement).value = target.dataset.editDesc!;
+        modal.showModal();
+      }
+      if (target.dataset.deleteId) {
+        const count = parseInt(target.dataset.deleteCount!);
+        const name = target.dataset.deleteName!;
+        if (count > 0) { alert(`分类「${name}」下有 ${count} 篇文章，请先迁移后再删除`); return; }
+        if (!confirm(`确认删除分类「${name}」？`)) return;
+        adminFetch(`${API_BASE}/api/admin/categories/${target.dataset.deleteId}`, { method: "DELETE" })
+          .then((r) => r.ok ? location.reload() : alert("删除失败"));
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const editId = (document.getElementById("edit-id") as HTMLInputElement).value;
+      const data = {
+        name: (document.getElementById("name") as HTMLInputElement).value,
+        slug: (document.getElementById("slug") as HTMLInputElement).value,
+        description: (document.getElementById("description") as HTMLTextAreaElement).value,
+        sort_order: parseInt((document.getElementById("sort_order") as HTMLInputElement).value) || 0,
+      };
+      const url = editId ? `${API_BASE}/api/admin/categories/${editId}` : `${API_BASE}/api/admin/categories`;
+      const method = editId ? "PUT" : "POST";
+      const res = await adminFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (res.ok) { modal.close(); location.reload(); }
+      else { const err = await res.json(); alert(err.error?.message || "保存失败"); }
+    });
+
+    loadCategories();
+  </script>
+</AdminLayout>

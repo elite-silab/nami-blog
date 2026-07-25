@@ -1,0 +1,441 @@
+openapi: "3.1.0"
+info:
+  title: Nami Blog API
+  version: "1.2.0"
+  description: |
+    Nami 娜美 CF 博客 API。
+    公开读接口运行在 Cloudflare Workers + D1，前台由 Cloudflare Pages 的 Astro SSG 构建。
+servers:
+  - url: http://localhost:8788
+    description: 本地 Workers 开发服务
+  - url: https://api.example.com
+    description: 生产 Workers API（替换为实际域名）
+
+tags:
+  - name: Health
+  - name: Posts
+  - name: Taxonomy
+  - name: Comments
+  - name: Auth
+  - name: Settings
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: 健康检查（兼容路径）
+      operationId: healthCheckCompat
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthResponse"
+
+  /api/v1/healthz:
+    get:
+      tags: [Health]
+      summary: 健康检查
+      operationId: healthCheck
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthResponse"
+
+  /api/v1/posts:
+    get:
+      tags: [Posts]
+      summary: 获取公开文章列表
+      description: 只返回 status=published、is_public=1 且未软删除的文章。
+      operationId: listPosts
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: category
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: tag
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: q
+          in: query
+          description: 标题或正文模糊搜索
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          description: 文章列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/posts/{slug}:
+    get:
+      tags: [Posts]
+      summary: 获取公开文章详情
+      operationId: getPost
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 255 }
+      responses:
+        "200":
+          description: 文章详情
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/PostDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/categories:
+    get:
+      tags: [Taxonomy]
+      summary: 获取分类列表
+      operationId: listCategories
+      responses:
+        "200":
+          description: 分类列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Category" }
+
+  /api/v1/tags:
+    get:
+      tags: [Taxonomy]
+      summary: 获取标签列表
+      operationId: listTags
+      responses:
+        "200":
+          description: 标签列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Tag" }
+
+  /api/v1/comments/{postId}:
+    get:
+      tags: [Comments]
+      summary: 获取文章已批准评论
+      operationId: listComments
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: 评论列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PublicComment" }
+
+  /api/v1/comments:
+    post:
+      tags: [Comments]
+      summary: 访客发表评论
+      operationId: createComment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommentInput" }
+      responses:
+        "200":
+          description: 评论已提交或已批准
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [id, status, message]
+                    properties:
+                      id: { type: integer }
+                      status: { type: string, enum: [pending, approved] }
+                      message: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: 管理员登录
+      description: 正常环境验证已有管理员。仅在 localhost 或 127.0.0.1 的空管理员数据库中，用户名为 admin 且密码匹配 ADMIN_INITIAL_PASSWORD 时自动创建一次本地管理员；生产域名不会触发。
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: 登录成功，同时写入 access_token HttpOnly Cookie
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 轮换管理员会话
+      description: Refresh Token 只能使用一次；成功后旧令牌立即吊销。
+      operationId: refreshSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: 已签发一组新令牌，同时更新 access_token Cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: 管理员登出
+      operationId: logout
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: 已清除 Cookie
+
+  /api/v1/settings:
+    get:
+      tags: [Settings]
+      summary: 获取公开站点设置
+      operationId: getPublicSettings
+      responses:
+        "200":
+          description: 仅返回公开非敏感设置
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties: { type: string }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    HealthResponse:
+      description: 服务正常
+      headers:
+        Cache-Control:
+          schema: { type: string, example: no-store }
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status, service]
+            properties:
+              status: { type: string, example: ok }
+              service: { type: string, example: nami-blog-api }
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: 未认证或认证失败
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    PostSummary:
+      type: object
+      required: [id, title, slug, status, is_pinned, is_public, created_at]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        excerpt: { type: string, nullable: true }
+        cover_url: { type: string, nullable: true }
+        status: { type: string, enum: [published] }
+        is_pinned: { type: integer, enum: [0, 1] }
+        is_public: { type: integer, enum: [0, 1] }
+        published_at: { type: string, nullable: true }
+        created_at: { type: string }
+
+    PostDetail:
+      allOf:
+        - $ref: "#/components/schemas/PostSummary"
+        - type: object
+          properties:
+            content: { type: string }
+            content_html: { type: string, nullable: true }
+            view_count: { type: integer }
+            word_count: { type: integer }
+            updated_at: { type: string }
+            categories:
+              type: array
+              items: { $ref: "#/components/schemas/Category" }
+            tags:
+              type: array
+              items: { $ref: "#/components/schemas/Tag" }
+            prev: { allOf: [{ $ref: "#/components/schemas/PostLink" }], nullable: true }
+            next: { allOf: [{ $ref: "#/components/schemas/PostLink" }], nullable: true }
+
+    PostLink:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        sort_order: { type: integer }
+        post_count: { type: integer }
+
+    Tag:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        color: { type: string, nullable: true }
+        post_count: { type: integer }
+
+    PublicComment:
+      type: object
+      properties:
+        id: { type: integer }
+        parent_id: { type: integer, nullable: true }
+        author_name: { type: string }
+        author_url: { type: string, nullable: true }
+        content: { type: string }
+        created_at: { type: string }
+
+    CommentInput:
+      type: object
+      required: [post_id, author_name, content]
+      properties:
+        post_id: { type: integer, minimum: 1 }
+        parent_id: { type: integer, minimum: 1, nullable: true }
+        author_name: { type: string, minLength: 1, maxLength: 50 }
+        author_email: { type: string, maxLength: 100, nullable: true }
+        author_url: { type: string, format: uri, maxLength: 200, nullable: true }
+        content: { type: string, minLength: 1, maxLength: 2000 }
+
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 64 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+
+    SessionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [accessToken, refreshToken]
+          properties:
+            accessToken: { type: string }
+            refreshToken: { type: string }
+
+    PaginationMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+
+    PostListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/PostSummary" }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }

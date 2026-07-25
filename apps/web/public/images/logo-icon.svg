@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="ic-g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#ic-g)"/>
+  <!-- N letter -->
+  <path d="M14 36 L14 12 L34 36 L34 12" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Petal accents -->
+  <circle cx="8" cy="8" r="2.5" fill="#f9a8d4" opacity="0.7"/>
+  <circle cx="14" cy="5" r="1.5" fill="#fce7f3" opacity="0.6"/>
+  <circle cx="5" cy="14" r="1.5" fill="#fce7f3" opacity="0.5"/>
+  <!-- Wave accent -->
+  <path d="M8 40 Q15 36 22 40 Q29 44 36 40" stroke="white" stroke-width="1.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+</svg>

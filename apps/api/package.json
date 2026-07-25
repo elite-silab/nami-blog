@@ -1,0 +1,37 @@
+{
+  "name": "@nami/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8788 --env-file ../../.env",
+    "build": "wrangler deploy --dry-run --env=\"\" --outdir=dist",
+    "deploy": "wrangler deploy --env=\"\"",
+    "deploy:staging": "wrangler deploy --env staging",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate": "wrangler d1 migrations apply nami-blog --local",
+    "db:seed": "node scripts/seed.mjs",
+    "db:reset": "wrangler d1 delete nami-blog --local --yes 2>/dev/null; wrangler d1 create nami-blog --local && wrangler d1 migrations apply nami-blog --local"
+  },
+  "dependencies": {
+    "@nami/shared": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.7.0",
+    "jose": "^6.2.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.8",
+    "@cloudflare/workers-types": "^5.20260724.1",
+    "@eslint/js": "^9.0.0",
+    "@types/bcryptjs": "^3.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.0.0"
+  }
+}

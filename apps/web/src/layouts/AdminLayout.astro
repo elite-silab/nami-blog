@@ -1,0 +1,151 @@
+---
+import "@/styles/global.css";
+import { THEME_INIT_SCRIPT, DEFAULT_THEME } from "@/lib/theme";
+import LogoIcon from "@/components/LogoIcon.astro";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "管理后台" } = Astro.props;
+
+const navItems = [
+  { href: "/admin", label: "仪表盘", icon: "📊" },
+  { href: "/admin/posts", label: "文章管理", icon: "📝" },
+  { href: "/admin/categories", label: "分类管理", icon: "📁" },
+  { href: "/admin/tags", label: "标签管理", icon: "🏷️" },
+  { href: "/admin/comments", label: "评论管理", icon: "💬" },
+  { href: "/admin/friends", label: "友链管理", icon: "🔗" },
+  { href: "/admin/settings", label: "站点设置", icon: "⚙️" },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme={DEFAULT_THEME}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — Nami Blog Admin</title>
+    <script is:inline set:html={THEME_INIT_SCRIPT} />
+  </head>
+  <body class="min-h-screen bg-[var(--color-bg-secondary)] antialiased">
+    <div class="flex min-h-screen">
+      <!-- Sidebar -->
+      <aside id="admin-sidebar" class="fixed left-0 top-0 z-40 flex h-screen w-72 -translate-x-full flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl transition-transform duration-300 lg:w-60 lg:translate-x-0 lg:shadow-none">
+        <!-- Logo -->
+        <div class="flex h-16 items-center gap-2 border-b border-[var(--color-border)] px-4">
+          <a href="/admin" class="flex items-center gap-2">
+            <LogoIcon size={28} />
+            <span class="rounded bg-[var(--color-primary-light)] px-1.5 py-0.5 text-xs font-medium text-[var(--color-primary)]">Admin</span>
+          </a>
+        </div>
+
+        <!-- Nav -->
+        <nav class="flex-1 space-y-1 overflow-y-auto p-3">
+          {navItems.map((item) => (
+            <a
+              href={item.href}
+              class:list={[
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                currentPath === item.href || (item.href !== "/admin" && currentPath.startsWith(item.href))
+                  ? "bg-[var(--color-primary-light)] text-[var(--color-primary)] font-medium"
+                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text)]",
+              ]}
+            >
+              <span class="text-base">{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <!-- Footer -->
+        <div class="border-t border-[var(--color-border)] p-3">
+          <a href="/" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)]">
+            ← 返回前台
+          </a>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <div class="ml-0 flex min-w-0 flex-1 flex-col lg:ml-60">
+        <!-- Header -->
+        <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 px-4 backdrop-blur-md lg:px-6">
+          <div class="flex min-w-0 items-center gap-3">
+            <button id="admin-menu-toggle" type="button" class="grid h-9 w-9 place-items-center rounded-lg border border-[var(--color-border)] text-lg text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] lg:hidden" aria-label="打开管理菜单" aria-controls="admin-sidebar" aria-expanded="false">☰</button>
+            <h1 class="truncate text-lg font-semibold">{title}</h1>
+          </div>
+          <div class="flex items-center gap-4">
+            <button
+              id="dark-toggle"
+              class="dark-toggle"
+              aria-label="切换明暗模式"
+              title="切换明暗模式"
+            >🌙</button>
+            <span class="text-sm text-[var(--color-text-secondary)]">Admin</span>
+            <button id="btn-logout" class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)]">
+              退出
+            </button>
+          </div>
+        </header>
+
+        <!-- Page content -->
+        <main class="flex-1 p-4 sm:p-6">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <button id="admin-sidebar-overlay" type="button" class="pointer-events-none fixed inset-0 z-30 bg-black/30 opacity-0 transition-opacity lg:hidden" aria-label="关闭管理菜单"></button>
+
+    <script>
+      import { logoutAdminSession } from "@/lib/admin-session";
+
+      const sidebar = document.getElementById("admin-sidebar");
+      const menuToggle = document.getElementById("admin-menu-toggle");
+      const sidebarOverlay = document.getElementById("admin-sidebar-overlay");
+      function setSidebarOpen(open: boolean) {
+        sidebar?.classList.toggle("translate-x-0", open);
+        sidebar?.classList.toggle("-translate-x-full", !open);
+        sidebarOverlay?.classList.toggle("pointer-events-none", !open);
+        sidebarOverlay?.classList.toggle("opacity-0", !open);
+        sidebarOverlay?.classList.toggle("opacity-100", open);
+        menuToggle?.setAttribute("aria-expanded", String(open));
+      }
+      menuToggle?.addEventListener("click", () => {
+        const open = menuToggle.getAttribute("aria-expanded") === "true";
+        setSidebarOpen(!open);
+      });
+      sidebarOverlay?.addEventListener("click", () => setSidebarOpen(false));
+      sidebar?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setSidebarOpen(false)));
+      document.getElementById("btn-logout")?.addEventListener("click", async () => {
+        try {
+          await logoutAdminSession();
+        } finally {
+          window.location.href = "/admin/login";
+        }
+      });
+
+      // Dark mode toggle
+      const darkBtn = document.getElementById("dark-toggle");
+      function updateDarkIcon() {
+        const isDark = document.documentElement.getAttribute("data-dark") === "true";
+        if (darkBtn) darkBtn.textContent = isDark ? "☀️" : "🌙";
+      }
+      updateDarkIcon();
+      darkBtn?.addEventListener("click", () => {
+        const html = document.documentElement;
+        const isDark = html.getAttribute("data-dark") === "true";
+        if (isDark) {
+          html.removeAttribute("data-dark");
+          localStorage.setItem("nami-dark", "false");
+        } else {
+          html.setAttribute("data-dark", "true");
+          localStorage.setItem("nami-dark", "true");
+        }
+        updateDarkIcon();
+      });
+    </script>
+  </body>
+</html>

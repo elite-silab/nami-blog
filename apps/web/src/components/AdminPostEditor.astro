@@ -1,0 +1,173 @@
+---
+interface Props {
+  mode: "create" | "edit";
+}
+
+const { mode } = Astro.props;
+const isEdit = mode === "edit";
+---
+
+<div class="mx-auto max-w-7xl">
+  <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Editorial desk</p>
+      <h2 class="mt-1 font-display text-2xl font-bold sm:text-3xl">{isEdit ? "打磨这篇文章" : "写下新的故事"}</h2>
+      <p class="mt-1 text-sm text-[var(--color-text-secondary)]">Markdown 写作台 · 支持快捷格式、字数统计与离开保护</p>
+    </div>
+    <a href="/admin/posts" class="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">← 返回文章列表</a>
+  </header>
+
+  <div id="editor-notice" class="mb-5 hidden rounded-xl border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
+
+  {!isEdit && (
+    <div id="draft-banner" class="mb-5 hidden items-center justify-between gap-4 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary-light)] px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold">发现当前标签页里未提交的草稿</p>
+        <p id="draft-time" class="mt-0.5 text-xs text-[var(--color-text-secondary)]"></p>
+      </div>
+      <div class="flex shrink-0 gap-2">
+        <button type="button" id="btn-discard-draft" class="rounded-lg px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]">丢弃</button>
+        <button type="button" id="btn-restore-draft" class="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white">恢复草稿</button>
+      </div>
+    </div>
+  )}
+
+  <form id="post-form" class="space-y-5">
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
+      <section class="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-sm">
+        <div class="border-b border-[var(--color-border)] px-5 py-4 sm:px-7">
+          <label for="title" class="sr-only">文章标题</label>
+          <input type="text" id="title" placeholder="输入一个让人想读下去的标题…" required maxlength="255"
+            class="w-full border-0 bg-transparent font-display text-2xl font-bold outline-none placeholder:text-[var(--color-text-tertiary)] sm:text-3xl" />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-2" aria-label="Markdown 快捷工具">
+          <button type="button" data-markdown="heading" class="editor-tool" title="二级标题">H2</button>
+          <button type="button" data-markdown="bold" class="editor-tool font-bold" title="粗体">B</button>
+          <button type="button" data-markdown="quote" class="editor-tool" title="引用">❝</button>
+          <button type="button" data-markdown="link" class="editor-tool" title="链接">↗</button>
+          <button type="button" data-markdown="code" class="editor-tool font-mono" title="代码块">&lt;/&gt;</button>
+          <span class="ml-auto hidden text-xs text-[var(--color-text-tertiary)] sm:inline">⌘/Ctrl + S 保存</span>
+        </div>
+
+        <label for="content" class="sr-only">Markdown 正文</label>
+        <textarea id="content" rows="28" placeholder="# 从这里开始…"
+          class="min-h-[34rem] w-full resize-y border-0 bg-transparent px-5 py-5 font-mono text-[15px] leading-7 outline-none placeholder:text-[var(--color-text-tertiary)] sm:px-7"></textarea>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-5 py-3 text-xs text-[var(--color-text-tertiary)] sm:px-7">
+          <span><span id="word-count">0</span> 字 · 预计阅读 <span id="read-time">0</span> 分钟</span>
+          <span id="local-draft-status">Markdown</span>
+        </div>
+      </section>
+
+      <aside class="space-y-4">
+        <section class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+          <h3 class="text-sm font-semibold">发布设置</h3>
+          {isEdit && (
+            <div class="mt-4">
+              <label for="status" class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">文章状态</label>
+              <select id="status" class="editor-field">
+                <option value="draft">草稿</option>
+                <option value="published">已发布</option>
+                <option value="archived">已归档</option>
+              </select>
+            </div>
+          )}
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <label class="editor-toggle"><input type="checkbox" id="is_pinned" /> <span>置顶</span></label>
+            <label class="editor-toggle"><input type="checkbox" id="is_public" checked /> <span>公开</span></label>
+          </div>
+        </section>
+
+        <section class="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5">
+          <h3 class="text-sm font-semibold">文章信息</h3>
+          <div>
+            <label for="slug" class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">URL Slug</label>
+            <input type="text" id="slug" placeholder="根据标题自动生成" maxlength="255" class="editor-field font-mono" />
+          </div>
+          <div>
+            <label for="excerpt" class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">摘要</label>
+            <textarea id="excerpt" rows="4" maxlength="500" placeholder="用一两句话介绍这篇文章" class="editor-field"></textarea>
+          </div>
+          <div>
+            <label for="category_id" class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">分类</label>
+            <select id="category_id" class="editor-field"><option value="">暂不分类</option></select>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">标签</label>
+            <div id="tags-container" class="flex min-h-10 flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-2.5">
+              <span class="text-xs text-[var(--color-text-tertiary)]">加载中…</span>
+            </div>
+          </div>
+          <div>
+            <label for="cover_url" class="mb-1.5 block text-xs font-medium text-[var(--color-text-secondary)]">封面图 URL</label>
+            <input type="text" id="cover_url" placeholder="/images/cover.webp" class="editor-field" />
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="sticky bottom-3 z-20 flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/90 p-3 shadow-xl backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <span id="save-status" class="min-h-5 text-sm text-[var(--color-text-secondary)]" aria-live="polite">{isEdit ? "正在载入文章…" : "尚未保存"}</span>
+      <div class="flex items-center justify-end gap-2">
+        {isEdit ? (
+          <>
+            <button type="button" id="btn-delete" class="rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--color-danger)] transition hover:bg-red-50">删除</button>
+            <button type="button" id="btn-save" class="editor-primary-action">保存修改</button>
+          </>
+        ) : (
+          <>
+            <button type="button" id="btn-draft" class="rounded-xl border border-[var(--color-border)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--color-bg-tertiary)]">保存草稿</button>
+            <button type="button" id="btn-publish" class="editor-primary-action">发布文章</button>
+          </>
+        )}
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+  .editor-tool {
+    display: inline-grid;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border-radius: 0.6rem;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+  .editor-tool:hover { background: var(--color-bg-tertiary); color: var(--color-primary); }
+  .editor-field {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-bg-secondary);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .editor-field:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent); }
+  .editor-toggle {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+  }
+  .editor-primary-action {
+    border-radius: 0.75rem;
+    background: var(--color-primary);
+    padding: 0.625rem 1.125rem;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: transform 160ms ease, background-color 160ms ease, opacity 160ms ease;
+  }
+  .editor-primary-action:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
+  .editor-primary-action:disabled { cursor: wait; opacity: 0.55; transform: none; }
+</style>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="url(#fg)"/>
+  <!-- N letter -->
+  <path d="M9 24 L9 8 L23 24 L23 8" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Petal accents -->
+  <circle cx="6" cy="6" r="1.8" fill="#f9a8d4" opacity="0.8"/>
+  <circle cx="10" cy="4" r="1.2" fill="#fce7f3" opacity="0.7"/>
+  <!-- Wave accent -->
+  <path d="M5 27 Q10 24 16 27 Q22 30 27 27" stroke="white" stroke-width="1.2" fill="none" opacity="0.4" stroke-linecap="round"/>
+</svg>

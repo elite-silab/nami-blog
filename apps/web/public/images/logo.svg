@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" width="200" height="56">
+  <defs>
+    <linearGradient id="nami-petal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <!-- Petal decorations -->
+  <ellipse cx="14" cy="12" rx="3.5" ry="6" fill="none" stroke="#ec4899" stroke-width="1.2" transform="rotate(-30,14,12)" opacity="0.5"/>
+  <ellipse cx="21" cy="14" rx="2.8" ry="5" fill="none" stroke="#f472b6" stroke-width="1.2" transform="rotate(20,21,14)" opacity="0.4"/>
+  <ellipse cx="10" cy="18" rx="2" ry="4" fill="none" stroke="#ec4899" stroke-width="1" transform="rotate(-50,10,18)" opacity="0.3"/>
+  <!-- Small wave accent -->
+  <path d="M4 30 Q8 24 12 30 Q16 36 20 30" stroke="url(#nami-petal)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Main text: Nami -->
+  <text x="30" y="36" font-family="Georgia,'Noto Serif SC',serif" font-size="34" font-weight="700">
+    <tspan fill="#ec4899">N</tspan><tspan fill="#1a1a2e">ami</tspan>
+  </text>
+  <!-- Subtitle: blog -->
+  <text x="130" y="36" font-family="'Inter','Noto Sans SC',sans-serif" font-size="13" fill="#7c5068" font-weight="300">blog</text>
+  <!-- Bottom wave line -->
+  <path d="M30 44 Q50 39 70 44 Q90 49 110 44 Q130 39 150 44 Q165 49 175 44" stroke="#ec4899" stroke-width="1.2" fill="none" opacity="0.35" stroke-linecap="round"/>
+</svg>

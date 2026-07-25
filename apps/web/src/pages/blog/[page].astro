@@ -1,0 +1,122 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PostCard from "@/components/PostCard.astro";
+
+const POSTS_PER_PAGE = 10;
+const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+
+interface Post {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  cover_url: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+let allPosts: Post[] = [];
+try {
+  const res = await fetch(`${apiUrl}/api/v1/posts?limit=500`);
+  if (res.ok) {
+    const json = await res.json();
+    allPosts = json.data || [];
+  }
+} catch { /* ignore */ }
+
+const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
+
+export function getStaticPaths() {
+  // 预计算总页数需要重复 fetch，这里用较大范围
+  const maxPages = 10;
+  return Array.from({ length: maxPages - 1 }, (_, i) => ({
+    params: { page: String(i + 2) },
+  }));
+}
+
+const currentPage = parseInt(Astro.params.page || "2");
+
+// 如果页码超过实际总页数，返回 404
+if (currentPage > totalPages || currentPage < 2) {
+  return new Response(null, { status: 404 });
+}
+
+const startIdx = (currentPage - 1) * POSTS_PER_PAGE;
+const posts = allPosts.slice(startIdx, startIdx + POSTS_PER_PAGE);
+const hasPrev = currentPage > 1;
+const hasNext = currentPage < totalPages;
+const prevUrl = currentPage === 2 ? "/blog" : `/blog/${currentPage - 1}`;
+const nextUrl = `/blog/${currentPage + 1}`;
+---
+
+<BaseLayout title={`文章列表 第${currentPage}页 - Nami Blog`}>
+  <section class="mx-auto max-w-5xl px-4 py-12 sm:py-16">
+    <div class="flex flex-wrap items-end justify-between gap-6 border-b border-[var(--color-border)] pb-8">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-primary)]">The archive · page {currentPage}</p>
+        <h1 class="mt-2 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">全部文章</h1>
+      </div>
+      <a href="/search" class="rounded-full border border-[var(--color-border-strong)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">搜索文章 ↗</a>
+    </div>
+
+    {posts.length === 0 ? (
+      <div class="mt-8 rounded-2xl border border-dashed border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)] p-10 text-center">
+        <p class="font-display text-2xl">此页没有文章</p>
+        <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+        此页没有文章。
+        </p>
+      </div>
+    ) : (
+      <div class="mt-8 grid gap-4 lg:grid-cols-2">
+        {posts.map((post, index) => (
+          <PostCard
+            title={post.title}
+            slug={post.slug}
+            excerpt={post.excerpt}
+            coverUrl={post.cover_url}
+            publishedAt={post.published_at}
+            createdAt={post.created_at}
+            index={(currentPage - 1) * POSTS_PER_PAGE + index}
+          />
+        ))}
+      </div>
+    )}
+
+    <!-- 分页导航 -->
+    <nav aria-label="文章分页" class="mt-12 flex flex-wrap items-center justify-center gap-2">
+      {hasPrev ? (
+        <a href={prevUrl} class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2 text-sm hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+          &larr; 上一页
+        </a>
+      ) : (
+        <span class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-tertiary)] opacity-50 cursor-not-allowed">
+          &larr; 上一页
+        </span>
+      )}
+
+      <div class="flex gap-1">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+          p === currentPage ? (
+            <span class="rounded-lg bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-white">{p}</span>
+          ) : (
+            <a href={p === 1 ? "/blog" : `/blog/${p}`} class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">{p}</a>
+          )
+        ))}
+      </div>
+
+      {hasNext ? (
+        <a href={nextUrl} class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2 text-sm hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+          下一页 &rarr;
+        </a>
+      ) : (
+        <span class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-tertiary)] opacity-50 cursor-not-allowed">
+          下一页 &rarr;
+        </span>
+      )}
+    </nav>
+
+    <p class="mt-4 text-center text-xs text-[var(--color-text-tertiary)]">
+      第 {currentPage} / {totalPages} 页，共 {allPosts.length} 篇文章
+    </p>
+  </section>
+</BaseLayout>

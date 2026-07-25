@@ -1,0 +1,146 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="标签管理">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">标签列表</h2>
+    <button id="btn-add" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-primary-hover)]">+ 新建标签</button>
+  </div>
+
+  <!-- 标签云视图 -->
+  <div id="tags-cloud" class="mt-4 flex flex-wrap gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6">
+    <div class="w-full py-6 text-center text-[var(--color-text-tertiary)]">加载中…</div>
+  </div>
+
+  <!-- 表格视图 -->
+  <div id="tags-table" class="mt-4"></div>
+
+  <!-- 弹窗 -->
+  <dialog id="modal" class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6 shadow-xl backdrop:bg-black/50">
+    <form id="tag-form" class="w-80 space-y-4">
+      <h3 id="modal-title" class="text-lg font-semibold">新建标签</h3>
+      <input type="hidden" id="edit-id" />
+      <div>
+        <label class="block text-sm font-medium">名称 *</label>
+        <input type="text" id="name" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Slug *</label>
+        <input type="text" id="slug" required class="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium">颜色</label>
+        <input type="color" id="color" class="mt-1 h-10 w-full rounded-lg border border-[var(--color-border)]" />
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="modal-cancel" class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm">取消</button>
+        <button type="submit" class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm text-white">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    import { ADMIN_API_BASE as API_BASE, adminFetch } from "@/lib/admin-session";
+
+    function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    async function loadTags() {
+      const cloud = document.getElementById("tags-cloud")!;
+      const table = document.getElementById("tags-table")!;
+      try {
+        const res = await adminFetch(`${API_BASE}/api/admin/tags`);
+        if (res.status === 401) { window.location.href = "/admin/login"; return; }
+        const { data } = await res.json();
+
+        if (!data || data.length === 0) {
+          cloud.innerHTML = `<div class="w-full py-6 text-center text-[var(--color-text-tertiary)]"><div class="text-4xl">🏷️</div><div class="mt-2">暂无标签</div></div>`;
+          table.innerHTML = "";
+          return;
+        }
+
+        // 标签云
+        cloud.innerHTML = data.map((tag: any) => `
+          <div class="group relative inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-3 py-1.5 text-sm hover:border-[var(--color-primary)]">
+            ${tag.color ? `<span class="inline-block h-3 w-3 rounded-full" style="background-color: ${tag.color}"></span>` : ""}
+            <span>${esc(tag.name)}</span>
+            <span class="text-xs text-[var(--color-text-tertiary)]">(${tag.post_count || 0})</span>
+            <div class="absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-[var(--color-bg)] px-2 py-1 text-xs shadow-lg group-hover:block">
+              <button data-edit-id="${tag.id}" data-edit-name="${esc(tag.name)}" data-edit-slug="${esc(tag.slug)}" data-edit-color="${tag.color || ""}" class="text-[var(--color-primary)] hover:underline">编辑</button>
+              ·
+              <button data-delete-id="${tag.id}" data-delete-name="${esc(tag.name)}" data-delete-count="${tag.post_count || 0}" class="text-[var(--color-danger)] hover:underline">删除</button>
+            </div>
+          </div>
+        `).join("");
+
+        // 表格
+        table.innerHTML = `<div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+          <table class="w-full text-sm"><thead class="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+            <tr><th class="px-4 py-3 text-left font-medium">名称</th><th class="px-4 py-3 text-left font-medium">Slug</th><th class="px-4 py-3 text-left font-medium">颜色</th><th class="px-4 py-3 text-center font-medium">文章数</th><th class="px-4 py-3 text-right font-medium">操作</th></tr>
+          </thead><tbody class="divide-y divide-[var(--color-border)]">
+            ${data.map((tag: any) => `<tr class="hover:bg-[var(--color-bg-secondary)]">
+              <td class="px-4 py-3 font-medium"><span class="flex items-center gap-2">${tag.color ? `<span class="inline-block h-3 w-3 rounded-full" style="background-color: ${tag.color}"></span>` : ""}${esc(tag.name)}</span></td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${esc(tag.slug)}</td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)]">${tag.color || "—"}</td>
+              <td class="px-4 py-3 text-center">${tag.post_count || 0}</td>
+              <td class="px-4 py-3 text-right">
+                <button data-edit-id="${tag.id}" data-edit-name="${esc(tag.name)}" data-edit-slug="${esc(tag.slug)}" data-edit-color="${tag.color || ""}" class="text-[var(--color-primary)] hover:underline">编辑</button>
+                <button data-delete-id="${tag.id}" data-delete-name="${esc(tag.name)}" data-delete-count="${tag.post_count || 0}" class="ml-2 text-[var(--color-danger)] hover:underline">删除</button>
+              </td>
+            </tr>`).join("")}
+          </tbody></table></div>`;
+      } catch {
+        cloud.innerHTML = '<div class="w-full py-6 text-center text-[var(--color-danger)]">加载失败</div>';
+      }
+    }
+
+    const modal = document.getElementById("modal") as HTMLDialogElement;
+    const form = document.getElementById("tag-form") as HTMLFormElement;
+
+    document.getElementById("btn-add")!.addEventListener("click", () => {
+      (document.getElementById("modal-title") as HTMLElement).textContent = "新建标签";
+      (document.getElementById("edit-id") as HTMLInputElement).value = "";
+      form.reset();
+      modal.showModal();
+    });
+
+    document.getElementById("modal-cancel")!.addEventListener("click", () => modal.close());
+
+    document.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.dataset.editId) {
+        (document.getElementById("modal-title") as HTMLElement).textContent = "编辑标签";
+        (document.getElementById("edit-id") as HTMLInputElement).value = target.dataset.editId!;
+        (document.getElementById("name") as HTMLInputElement).value = target.dataset.editName!;
+        (document.getElementById("slug") as HTMLInputElement).value = target.dataset.editSlug!;
+        (document.getElementById("color") as HTMLInputElement).value = target.dataset.editColor || "#3b82f6";
+        modal.showModal();
+      }
+      if (target.dataset.deleteId) {
+        const count = parseInt(target.dataset.deleteCount!);
+        const name = target.dataset.deleteName!;
+        if (count > 0 && !confirm(`标签「${name}」下有 ${count} 篇文章，删除后文章将失去此标签。继续？`)) return;
+        if (count === 0 && !confirm(`确认删除标签「${name}」？`)) return;
+        adminFetch(`${API_BASE}/api/admin/tags/${target.dataset.deleteId}`, { method: "DELETE" })
+          .then((r) => r.ok ? location.reload() : alert("删除失败"));
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const editId = (document.getElementById("edit-id") as HTMLInputElement).value;
+      const data = {
+        name: (document.getElementById("name") as HTMLInputElement).value,
+        slug: (document.getElementById("slug") as HTMLInputElement).value,
+        color: (document.getElementById("color") as HTMLInputElement).value || null,
+      };
+      const url = editId ? `${API_BASE}/api/admin/tags/${editId}` : `${API_BASE}/api/admin/tags`;
+      const method = editId ? "PUT" : "POST";
+      const res = await adminFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (res.ok) { modal.close(); location.reload(); }
+      else { const err = await res.json(); alert(err.error?.message || "保存失败"); }
+    });
+
+    loadTags();
+  </script>
+</AdminLayout>

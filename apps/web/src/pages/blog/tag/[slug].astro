@@ -1,0 +1,78 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+  let tags: Array<{ slug: string }> = [];
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/tags`);
+    if (res.ok) {
+      const json = await res.json();
+      tags = json.data || [];
+    }
+  } catch {}
+  return tags.map((tag) => ({ params: { slug: tag.slug } }));
+}
+
+const { slug } = Astro.params;
+const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+
+interface Post {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  cover_url: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+let posts: Post[] = [];
+let tagName = slug;
+
+try {
+  const [postsRes, tagsRes] = await Promise.all([
+    fetch(`${apiUrl}/api/v1/posts?tag=${slug}&limit=100`),
+    fetch(`${apiUrl}/api/v1/tags`),
+  ]);
+  if (postsRes.ok) {
+    const json = await postsRes.json();
+    posts = json.data || [];
+  }
+  if (tagsRes.ok) {
+    const json = await tagsRes.json();
+    const tag = (json.data || []).find((t: any) => t.slug === slug);
+    if (tag) tagName = tag.name;
+  }
+} catch {}
+---
+
+<BaseLayout title={`标签：${tagName} — Nami Blog`}>
+  <section class="mx-auto max-w-3xl px-4 py-12">
+    <div class="mb-6 flex items-center gap-2">
+      <a href="/" class="text-sm text-[var(--color-primary)] hover:underline">&larr; 返回首页</a>
+    </div>
+    <h1 class="text-2xl font-bold">🏷️ 标签：{tagName}</h1>
+    <p class="mt-1 text-sm text-[var(--color-text-secondary)]">共 {posts.length} 篇文章</p>
+
+    {posts.length === 0 ? (
+      <div class="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-12 text-center">
+        <p class="text-[var(--color-text-secondary)]">该标签下暂无文章</p>
+      </div>
+    ) : (
+      <div class="mt-6 space-y-4">
+        {posts.map((post) => (
+          <a href={`/blog/${post.slug}`} class="group block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 transition-all hover:border-[var(--color-primary)]">
+            <h2 class="text-lg font-semibold group-hover:text-[var(--color-primary)]">{post.title}</h2>
+            {post.excerpt && (
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">{post.excerpt}</p>
+            )}
+            <div class="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {new Date(post.published_at || post.created_at).toLocaleDateString("zh-CN")}
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</BaseLayout>
