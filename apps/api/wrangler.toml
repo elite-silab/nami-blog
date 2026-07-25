@@ -19,7 +19,7 @@ CORS_ORIGIN = "https://nami-blog.pages.dev"
 [[d1_databases]]
 binding = "DB"
 database_name = "nami-blog"
-database_id = "<replace-with-production-d1-id>"
+database_id = "5b260006-2faf-46d4-8cad-8b909671f738"
 migrations_dir = "../../migrations"
 
 # ===========================================
