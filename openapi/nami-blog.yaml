@@ -183,7 +183,7 @@ paths:
     post:
       tags: [Auth]
       summary: 管理员登录
-      description: 正常环境验证已有管理员。仅在 localhost 或 127.0.0.1 的空管理员数据库中，用户名为 admin 且密码匹配 ADMIN_INITIAL_PASSWORD 时自动创建一次本地管理员；生产域名不会触发。
+      description: 正常情况下验证已有管理员。空管理员数据库中，用户名为 admin 且密码匹配 ADMIN_INITIAL_PASSWORD 时可创建一次管理员。本地允许模板密码；生产必须使用 HTTPS、12–128 字符的自定义 Secret，并拒绝 nami-local-admin。已有管理员永不覆盖或重置。
       operationId: login
       requestBody:
         required: true

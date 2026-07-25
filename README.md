@@ -20,7 +20,7 @@
   <img src="https://img.shields.io/badge/Frontend-Astro%205-BC52EE?logo=astro&logoColor=white" alt="Astro" />
   <img src="https://img.shields.io/badge/Database-D1-0052CC?logo=sqlite&logoColor=white" alt="D1" />
   <img src="https://img.shields.io/badge/Style-Tailwind%204-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Test-87%20passed-brightgreen?logo=vitest&logoColor=white" alt="Tests" />
+  <a href="https://github.com/elite-silab/nami-blog/actions/workflows/ci.yml"><img src="https://github.com/elite-silab/nami-blog/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT" />
 </p>
 
@@ -54,7 +54,7 @@
 
 |               前台首页               |             管理后台              |
 | :----------------------------------: | :-------------------------------: |
-| ![](.github/screenshot-frontend.png) | ![](.github/screenshot-admin.png) |
+| ![Nami Blog 前台首页](.github/screenshot-frontend.png) | ![Nami Blog 管理后台](.github/screenshot-admin.png) |
 
 ## 🏗️ 架构
 
@@ -86,11 +86,11 @@
 | 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                |
 | 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header             |
 | Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared` |
-| 测试     | **Vitest**                | 87 个测试用例，含 Workers 集成测试          |
+| 测试     | **Vitest**                | 89 个测试用例，含 Workers 集成测试          |
 
 ## 🚀 快速开始
 
-> **你需要**：一个 Cloudflare 账号（免费）。不需要域名，Cloudflare 会给你免费的 `workers.dev` 和 `pages.dev` 地址。
+> **你需要**：GitHub 和 Cloudflare 免费账号。不需要域名，Cloudflare 会提供免费的 `workers.dev` 和 `pages.dev` 地址。
 
 ### 第一步：Fork 仓库
 
@@ -112,8 +112,8 @@ GitHub 打开 `apps/api/wrangler.toml` → 点铅笔 ✏️ → 改两处：
 # 粘贴第二步复制的 Database ID
 database_id = "xxxx-xxxx-xxxx-xxxx"
 
-# CORS_ORIGIN 先填占位符（第六步后会回填）
-CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
+# 先填计划使用的 Pages 地址（第六步按 Cloudflare 实际地址回填）
+CORS_ORIGIN = "https://nami-blog.pages.dev"
 ```
 
 点 **Commit changes** 保存。
@@ -122,61 +122,64 @@ CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
 
 Workers & Pages → Create → **Import from Git** → 选你 Fork 的仓库，填写：
 
-| 配置项         | 值                                                                        |
-| -------------- | ------------------------------------------------------------------------- |
-| Project name   | `nami-blog-api`                                                           |
-| Build command  | `pnpm --filter @nami/shared build`                                        |
-| Deploy command | `pnpm --filter @nami/shared build && pnpm --filter @nami/api deploy:full` |
-| Node version   | `22`                                                                      |
+| 配置项         | 值                                   |
+| -------------- | ------------------------------------ |
+| Project name   | `nami-blog-api`                      |
+| Build command  | `pnpm --filter @nami/api build`       |
+| Deploy command | `pnpm --filter @nami/api deploy:full` |
+| Node version   | `22`                                 |
 
 点 **Save and Deploy**，部署成功后复制 Worker 地址（如 `https://nami-blog-api.xxx.workers.dev`）。
 
-然后进入 Worker **Settings → Variables and Secrets**，添加 2 个 Secret：
+然后进入 Worker **Settings → Variables and Secrets**，添加 3 个 Secret：
 
-| 变量                 | 值                                     |
-| -------------------- | -------------------------------------- |
-| `JWT_SECRET`         | 随机长字符串（`openssl rand -hex 32`） |
-| `JWT_REFRESH_SECRET` | 另一个随机长字符串                     |
+| 变量                     | 值                                                        |
+| ------------------------ | --------------------------------------------------------- |
+| `JWT_SECRET`             | 密码管理器生成的随机长字符串                              |
+| `JWT_REFRESH_SECRET`     | 另一个不同的随机长字符串                                  |
+| `ADMIN_INITIAL_PASSWORD` | 自己设置的一次性管理员密码，至少 12 个字符，不能使用本地默认值 |
 
-保存后再 Deploy 一次 ☕
+三个值都不要提交到 GitHub，也不要互相复用。保存后再 Deploy 一次 ☕
 
 ### 第五步：部署前端（Pages）
 
 Workers & Pages → Create → **Pages** → **Connect to Git** → 选你 Fork 的仓库，填写：
 
-| 配置项                 | 值                                                                  |
-| ---------------------- | ------------------------------------------------------------------- |
-| Project name           | `nami-blog`                                                         |
-| Build command          | `pnpm --filter @nami/shared build && pnpm --filter @nami/web build` |
-| Build output directory | `apps/web/dist`                                                     |
+| 配置项                 | 值                              |
+| ---------------------- | ------------------------------- |
+| Project name           | `nami-blog`                     |
+| Build command          | `pnpm --filter @nami/web build` |
+| Build output directory | `apps/web/dist`                 |
 
 Environment variables 添加：
 
-| 变量             | 值                                                      |
-| ---------------- | ------------------------------------------------------- |
-| `PUBLIC_API_URL` | `https://nami-blog-api.xxx.workers.dev`（第四步的地址） |
-| `SITE_URL`       | `https://nami-blog.你的用户名.pages.dev`                |
+| 变量             | 值                                                                        |
+| ---------------- | ------------------------------------------------------------------------- |
+| `PUBLIC_API_URL` | 第四步复制的完整 Worker 地址，例如 `https://nami-blog-api.xxx.workers.dev` |
+| `SITE_URL`       | Pages 项目显示的完整地址，例如 `https://nami-blog.pages.dev`             |
 
 点 **Save and Deploy** ☕
 
 ### 第六步：回填地址
 
-回 GitHub 再编辑 `wrangler.toml`，补上正式地址：
+部署完成后，复制 Cloudflare 显示的实际 Pages 地址。回 GitHub 再编辑 `wrangler.toml`，补上这个地址：
 
 ```toml
-CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
+CORS_ORIGIN = "https://nami-blog.pages.dev"
 ```
 
 Commit 后自动重新部署。
 
 ### 第七步：登录
 
-打开 `https://nami-blog.你的用户名.pages.dev/admin/login`
+打开实际 Pages 地址后加 `/admin/login`，例如 `https://nami-blog.pages.dev/admin/login`。
 
 - 用户名：`admin`
-- 密码：`nami-local-admin`（默认密码，登录后立即修改！）
+- 密码：第四步在 Workers Dashboard 设置的 `ADMIN_INITIAL_PASSWORD`
 
-> 📖 详细图文见 [小白部署指南](docs/小白上手指南.md) · 命令行部署见 [部署运维文档](docs/部署运维文档.md)
+首次登录只在数据库没有管理员时生效。登录后立即到 **后台设置 → 安全设置** 修改密码，再回 Workers Dashboard 删除 `ADMIN_INITIAL_PASSWORD`；以后修改或删除该 Secret 都不会重置已有账号。生产环境会拒绝公开的本地默认密码 `nami-local-admin`。
+
+> 📖 详细图文见 [Cloudflare 部署指南](docs/Cloudflare部署指南.md) · 本地使用见 [小白上手指南](docs/小白上手指南.md) · 高级运维见 [部署运维文档](docs/部署运维文档.md)
 
 ### ✅ 完成
 
@@ -186,9 +189,16 @@ Commit 后自动重新部署。
 
 ```bash
 git clone https://github.com/你的用户名/nami-blog.git && cd nami-blog
-pnpm install && cp .env.example .env
-pnpm db:migrate && pnpm dev
+pnpm install
 ```
+
+在编辑器文件树中复制根目录 `.env.example`，把副本重命名为 `.env`；本地默认配置无需修改。然后运行：
+
+```bash
+pnpm dev
+```
+
+启动命令会自动执行本地 D1 migration，不需要单独运行数据库命令。
 
 - 前端：`http://localhost:4321`
 - 管理后台：`http://localhost:4321/admin/login`（`admin` / `nami-local-admin`）
@@ -199,11 +209,11 @@ pnpm db:migrate && pnpm dev
 ```bash
 pnpm dev              # 启动 API + Web
 pnpm build            # 构建
-pnpm test             # 运行测试 (87 tests)
+pnpm test             # 运行测试 (89 tests)
 pnpm typecheck        # 类型检查
 pnpm lint             # ESLint
-pnpm db:migrate       # 本地 D1 迁移
-pnpm db:seed          # 创建管理员
+pnpm db:migrate       # 高级：手动执行本地 D1 迁移
+pnpm db:seed          # 高级：交互式创建管理员
 pnpm db:reset         # 重置本地数据库
 ```
 
@@ -240,18 +250,19 @@ migrations/       # D1 数据库迁移 SQL
 
 ## 📖 文档
 
-| 文档                                       | 说明               |
-| :----------------------------------------- | :----------------- |
-| [部署指南](docs/部署运维文档.md)           | 生产环境部署全流程 |
-| [小白上手](docs/小白上手指南.md)           | 零基础本地启动指南 |
-| [前端功能](docs/前端功能与交互设计文档.md) | 页面结构与交互规范 |
-| [管理后台](docs/管理后台功能与设计文档.md) | 后台功能与安全设计 |
-| [Git 规范](docs/Git工作规范.md)            | 分支模型与提交规范 |
+| 文档                                                   | 说明                   |
+| :----------------------------------------------------- | :--------------------- |
+| [Cloudflare 图文部署](docs/Cloudflare部署指南.md)      | Dashboard/Git 集成部署 |
+| [部署运维](docs/部署运维文档.md)                       | 生产环境高级运维       |
+| [小白上手](docs/小白上手指南.md)                       | 零基础本地启动指南     |
+| [前端功能](docs/前端功能与交互设计文档.md)             | 页面结构与交互规范     |
+| [管理后台](docs/管理后台功能与设计文档.md)             | 后台功能与安全设计     |
+| [Git 规范](docs/Git工作规范.md)                        | 分支模型与提交规范     |
 
 ## 🧪 质量
 
 ```bash
-pnpm test        # Vitest 87 个用例
+pnpm test        # Vitest 89 个用例
 pnpm typecheck   # TypeScript 类型检查
 pnpm lint        # ESLint
 pnpm build       # 全量构建

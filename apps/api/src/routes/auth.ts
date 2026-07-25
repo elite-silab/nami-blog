@@ -15,6 +15,8 @@ import { adminAuth } from "../middleware/auth";
 
 export const authRoutes = new Hono<Env>();
 
+const LOCAL_DEFAULT_ADMIN_PASSWORD = "nami-local-admin";
+
 type AdminUser = {
   id: number;
   username: string;
@@ -25,6 +27,19 @@ type AdminUser = {
 function isLocalRequest(requestUrl: string) {
   const hostname = new URL(requestUrl).hostname;
   return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function canUseInitialPassword(requestUrl: string, configuredPassword?: string) {
+  if (!configuredPassword) return false;
+  if (isLocalRequest(requestUrl)) return true;
+
+  const url = new URL(requestUrl);
+  return (
+    url.protocol === "https:" &&
+    configuredPassword !== LOCAL_DEFAULT_ADMIN_PASSWORD &&
+    configuredPassword.length >= 12 &&
+    configuredPassword.length <= 128
+  );
 }
 
 function appendAccessCookie(response: Response, token: string, requestUrl: string) {
@@ -73,26 +88,28 @@ authRoutes.post("/login", async (c) => {
     .bind(body.username)
     .first<AdminUser>();
 
-  const canBootstrapLocalAdmin =
+  const canBootstrapAdmin =
     !user &&
-    isLocalRequest(c.req.url) &&
     body.username === "admin" &&
-    Boolean(c.env.ADMIN_INITIAL_PASSWORD) &&
+    canUseInitialPassword(c.req.url, c.env.ADMIN_INITIAL_PASSWORD) &&
     body.password === c.env.ADMIN_INITIAL_PASSWORD;
 
-  if (canBootstrapLocalAdmin) {
+  if (canBootstrapAdmin) {
     const existingAdmin = await DB.prepare(
       "SELECT id FROM users WHERE role = 'admin' AND deleted_at IS NULL LIMIT 1",
     ).first<{ id: number }>();
 
     if (!existingAdmin) {
       const passwordHash = await bcrypt.hash(body.password, 12);
+      const bootstrapEmail = isLocalRequest(c.req.url)
+        ? "admin@local.test"
+        : "admin@nami.invalid";
       await DB.prepare(
         `INSERT OR IGNORE INTO users
          (username, email, password_hash, display_name, role, status)
-         VALUES ('admin', 'admin@local.test', ?, 'Admin', 'admin', 'active')`,
+         VALUES ('admin', ?, ?, 'Admin', 'admin', 'active')`,
       )
-        .bind(passwordHash)
+        .bind(bootstrapEmail, passwordHash)
         .run();
 
       user = await DB.prepare(
