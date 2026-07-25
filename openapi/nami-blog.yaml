@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Nami Blog API
-  version: "1.2.0"
+  version: "1.3.0"
   description: |
     Nami 娜美 CF 博客 API。
     公开读接口运行在 Cloudflare Workers + D1，前台由 Cloudflare Pages 的 Astro SSG 构建。
@@ -87,6 +87,39 @@ paths:
                 required: [data]
                 properties:
                   data: { $ref: "#/components/schemas/PostDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/posts/{slug}/view:
+    post:
+      tags: [Posts]
+      summary: 记录一次公开文章阅读
+      description: 仅为已发布、公开且未软删除的文章增加浏览量。客户端负责同一标签页内按文章去重。
+      operationId: recordPostView
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: 阅读量已更新
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [view_count]
+                    properties:
+                      view_count: { type: integer, minimum: 0 }
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
 

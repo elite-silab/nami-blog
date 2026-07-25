@@ -93,11 +93,6 @@ publicRoutes.get("/posts/:slug", async (c) => {
 
   const postId = (post as { id: number }).id;
 
-  // 增加浏览量
-  await DB.prepare("UPDATE posts SET view_count = view_count + 1 WHERE id = ?")
-    .bind(postId)
-    .run();
-
   // 获取分类和标签
   const [categories, tags, prevPost, nextPost] = await Promise.all([
     DB.prepare(
@@ -139,6 +134,37 @@ publicRoutes.get("/posts/:slug", async (c) => {
       next: nextPost || null,
     },
   });
+});
+
+// ── POST /posts/:slug/view — 记录一次真实的文章阅读 ──
+publicRoutes.post("/posts/:slug/view", async (c) => {
+  c.header("Cache-Control", "no-store");
+  const slug = c.req.param("slug");
+  if (!slug || slug.length > 200) {
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "文章 Slug 无效" } },
+      400,
+    );
+  }
+
+  const result = await c.env.DB.prepare(
+    `UPDATE posts SET view_count = view_count + 1
+     WHERE slug = ? AND status = 'published' AND is_public = 1 AND deleted_at IS NULL`,
+  )
+    .bind(slug)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
+  }
+
+  const post = await c.env.DB.prepare(
+    "SELECT view_count FROM posts WHERE slug = ? LIMIT 1",
+  )
+    .bind(slug)
+    .first<{ view_count: number }>();
+
+  return c.json({ data: { view_count: post?.view_count ?? 0 } });
 });
 
 // ── GET /categories — 分类列表 ──

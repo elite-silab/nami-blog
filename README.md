@@ -86,7 +86,7 @@
 | 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                |
 | 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header             |
 | Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared` |
-| 测试     | **Vitest**                | 96 个测试用例，含 Workers 集成测试          |
+| 测试     | **Vitest**                | 103 个测试用例，含 Workers 集成测试         |
 
 ## 🚀 快速开始
 
@@ -235,7 +235,7 @@ pnpm dev
 ```bash
 pnpm dev              # 启动 API + Web
 pnpm build            # 构建
-pnpm test             # 运行测试（96 tests）
+pnpm test             # 运行测试（103 tests）
 pnpm typecheck        # 类型检查
 pnpm lint             # ESLint
 pnpm db:migrate       # 高级：手动执行本地 D1 迁移
@@ -288,7 +288,7 @@ migrations/       # D1 数据库迁移 SQL
 ## 🧪 质量
 
 ```bash
-pnpm test        # Vitest 96 个用例
+pnpm test        # Vitest 103 个用例
 pnpm typecheck   # TypeScript 类型检查
 pnpm lint        # ESLint
 pnpm build       # 全量构建

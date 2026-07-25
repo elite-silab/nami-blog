@@ -112,4 +112,24 @@ describe("管理端文章写作流程", () => {
     };
     expect(result.data.deployment.status).toBe("not_configured");
   });
+
+  it("仪表盘应返回真实总浏览量和分类标签数量", async () => {
+    await (env as any).DB.prepare(
+      "UPDATE posts SET view_count = CASE id WHEN 1 THEN 3 WHEN 2 THEN 4 ELSE 0 END",
+    ).run();
+
+    const response = await apiFetch("/api/admin/dashboard", {
+      headers: { Authorization: authorization },
+    });
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
+      data: {
+        views: { total: number };
+        taxonomies: { categories: number; tags: number };
+      };
+    };
+
+    expect(result.data.views.total).toBe(7);
+    expect(result.data.taxonomies).toEqual({ categories: 1, tags: 1 });
+  });
 });

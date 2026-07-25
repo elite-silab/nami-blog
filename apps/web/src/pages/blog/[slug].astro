@@ -86,7 +86,14 @@ const seoProps = {
             <span>·</span>
             <span>{post.word_count || "—"} 字</span>
             <span>·</span>
-            <span>{post.view_count} 次阅读</span>
+            <span>
+              <span
+                id="post-view-count"
+                data-api-base={API_BASE}
+                data-post-slug={post.slug}
+                aria-live="polite"
+              >{post.view_count}</span> 次阅读
+            </span>
           </div>
 
           <!-- 分类和标签 -->
@@ -146,6 +153,19 @@ const seoProps = {
   <CommentSection postId={post.id} />
 
   <script>
+    import { trackPostView } from "@/lib/view-tracker";
+
+    const viewCountElement = document.getElementById("post-view-count");
+    const apiBase = viewCountElement?.dataset.apiBase;
+    const postSlug = viewCountElement?.dataset.postSlug;
+    if (viewCountElement && apiBase && postSlug) {
+      void trackPostView(apiBase, postSlug).then((viewCount) => {
+        if (viewCount !== null) {
+          viewCountElement.textContent = String(viewCount);
+        }
+      });
+    }
+
     // ── TOC 目录生成 ──
     const postContent = document.getElementById("post-content");
     const tocNav = document.getElementById("toc-nav");

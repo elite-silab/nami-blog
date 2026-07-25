@@ -164,6 +164,42 @@ describe("GET /api/v1/posts/:slug — 文章详情", () => {
     const res = await apiFetch("/api/v1/posts/draft-post");
     expect(res.status).toBe(404);
   });
+
+  it("读取文章详情不应增加浏览量", async () => {
+    const first = await apiFetch("/api/v1/posts/test-post");
+    const firstJson = (await first.json()) as any;
+    const second = await apiFetch("/api/v1/posts/test-post");
+    const secondJson = (await second.json()) as any;
+
+    expect(secondJson.data.view_count).toBe(firstJson.data.view_count);
+  });
+});
+
+describe("POST /api/v1/posts/:slug/view — 阅读统计", () => {
+  it("应只为已发布公开文章增加一次浏览量", async () => {
+    const detail = await apiFetch("/api/v1/posts/pinned-post");
+    const before = (await detail.json()) as any;
+
+    const response = await apiFetch("/api/v1/posts/pinned-post/view", {
+      method: "POST",
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const result = (await response.json()) as any;
+    expect(result.data.view_count).toBe(before.data.view_count + 1);
+  });
+
+  it("草稿或不存在的文章不能增加浏览量", async () => {
+    const draft = await apiFetch("/api/v1/posts/draft-post/view", {
+      method: "POST",
+    });
+    const missing = await apiFetch("/api/v1/posts/not-found/view", {
+      method: "POST",
+    });
+
+    expect(draft.status).toBe(404);
+    expect(missing.status).toBe(404);
+  });
 });
 
 describe("GET /api/v1/categories — 分类列表", () => {

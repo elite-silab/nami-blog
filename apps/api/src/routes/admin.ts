@@ -24,7 +24,15 @@ function isPublicPost(status: string, isPublic: number) {
 // ═══════════════════════════════════════════
 adminRoutes.get("/dashboard", async (c) => {
   const DB = c.env.DB;
-  const [postsCount, draftsCount, commentsCount, pendingComments] =
+  const [
+    postsCount,
+    draftsCount,
+    commentsCount,
+    pendingComments,
+    totalViews,
+    categoriesCount,
+    tagsCount,
+  ] =
     await Promise.all([
       DB.prepare(
         "SELECT COUNT(*) as c FROM posts WHERE status = 'published' AND deleted_at IS NULL",
@@ -37,6 +45,15 @@ adminRoutes.get("/dashboard", async (c) => {
       ).first<{ c: number }>(),
       DB.prepare(
         "SELECT COUNT(*) as c FROM comments WHERE status = 'pending' AND deleted_at IS NULL",
+      ).first<{ c: number }>(),
+      DB.prepare(
+        "SELECT COALESCE(SUM(view_count), 0) as c FROM posts WHERE status = 'published' AND is_public = 1 AND deleted_at IS NULL",
+      ).first<{ c: number }>(),
+      DB.prepare(
+        "SELECT COUNT(*) as c FROM categories WHERE deleted_at IS NULL",
+      ).first<{ c: number }>(),
+      DB.prepare(
+        "SELECT COUNT(*) as c FROM tags WHERE deleted_at IS NULL",
       ).first<{ c: number }>(),
     ]);
 
@@ -63,6 +80,11 @@ adminRoutes.get("/dashboard", async (c) => {
       comments: {
         total: commentsCount?.c ?? 0,
         pending: pendingComments?.c ?? 0,
+      },
+      views: { total: totalViews?.c ?? 0 },
+      taxonomies: {
+        categories: categoriesCount?.c ?? 0,
+        tags: tagsCount?.c ?? 0,
       },
       recentPosts: recentPosts.results,
       recentComments: recentComments.results,
