@@ -128,6 +128,8 @@ nami-blog/
 
 ## ☁️ 部署到 Cloudflare
 
+> 📖 **新手？** 请参阅 [Cloudflare 部署指南（零域名 · 纯免费）](docs/Cloudflare部署指南.md)，手把手 8 步完成。
+
 本项目部署为两个独立的 Cloudflare 服务：
 
 | 服务            | 类型    | 说明                    |
