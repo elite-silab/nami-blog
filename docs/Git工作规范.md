@@ -162,9 +162,6 @@ migrations/0003_create_comments_table.sql
 # 本地开发数据库
 wrangler d1 migrations apply nami-blog --local
 
-# 远程 preview 数据库
-wrangler d1 migrations apply nami-blog-preview --remote
-
 # 远程生产数据库（谨慎）
 wrangler d1 migrations apply nami-blog --remote
 ```
@@ -240,7 +237,7 @@ tmp/
 
 ### D1 数据库与部署
 
-- [ ] migration 在本地空库与远程 preview 环境验证通过。
+- [ ] migration 在本地空库验证通过。
 - [ ] 索引适合目标数据规模，查询使用 prepared statement。
 - [ ] 新配置已记录到对应应用的 `.example` 模板和 `wrangler.toml`。
 - [ ] 部署和回滚不会依赖不可逆的 schema 变更。
@@ -249,7 +246,7 @@ tmp/
 
 - 合并 `main` 后 CI 自动运行测试和构建检查。
 - 前端由 Cloudflare Pages 自动构建部署（Astro SSG），API 由 Cloudflare Workers 独立部署。
-- 以 Git SHA 标记，preview 环境自动分配。
+- 以 Git SHA 标记生产发布，必要时使用 Pages 历史部署回滚。
 - 生产发布使用带变更说明的版本标签；D1 迁移状态和备份纳入发布检查。
 - hotfix 从当前生产标签创建，合并回 `main` 后正常发布，不维护独立长期分支。
 - 回滚：Pages 在 Dashboard 一键回滚上一部署；Workers 使用 `wrangler rollback` 回退到上一版本。

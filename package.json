@@ -35,7 +35,6 @@
     "db:migrate": "pnpm --filter @nami/api db:migrate",
     "db:seed": "pnpm --filter @nami/api db:seed",
     "db:reset": "pnpm --filter @nami/api db:reset",
-    "db:migrate:preview": "wrangler d1 migrations apply nami-blog-preview --remote --config apps/api/wrangler.toml",
     "db:migrate:prod": "wrangler d1 migrations apply nami-blog --remote --config apps/api/wrangler.toml"
   },
   "devDependencies": {
