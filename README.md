@@ -26,16 +26,16 @@
 
 ## ✨ 为什么选择 Nami Blog？
 
-| 特性 | Nami Blog | WordPress | Ghost | Hexo / Hugo |
-|:---|:---:|:---:|:---:|:---:|
-| **需要服务器** | ❌ 不需要 | ✅ 需要 | ✅ 需要 | ❌ 不需要 |
-| **运行成本** | $0（CF 免费版） | VPS 费用 | VPS / $9+ | $0 |
-| **全球 CDN 加速** | ✅ 边缘节点 | ❌ 需配置 | ❌ 需配置 | 取决于托管 |
-| **管理后台** | ✅ 内置 | ✅ 内置 | ✅ 内置 | ❌ 无 |
-| **评论系统** | ✅ 自建 | 插件 | 付费 | 第三方 |
-| **主题系统** | 3 套 + Dark 模式 | 海量主题 | 少量主题 | 海量主题 |
-| **SEO / RSS** | ✅ 内置 | 插件 | ✅ 内置 | ✅ 内置 |
-| **数据库** | D1（全球分布） | MySQL | MySQL/SQLite | 无 |
+| 特性              |    Nami Blog     | WordPress |    Ghost     | Hexo / Hugo |
+| :---------------- | :--------------: | :-------: | :----------: | :---------: |
+| **需要服务器**    |    ❌ 不需要     |  ✅ 需要  |   ✅ 需要    |  ❌ 不需要  |
+| **运行成本**      | $0（CF 免费版）  | VPS 费用  |  VPS / $9+   |     $0      |
+| **全球 CDN 加速** |   ✅ 边缘节点    | ❌ 需配置 |  ❌ 需配置   | 取决于托管  |
+| **管理后台**      |     ✅ 内置      |  ✅ 内置  |   ✅ 内置    |    ❌ 无    |
+| **评论系统**      |     ✅ 自建      |   插件    |     付费     |   第三方    |
+| **主题系统**      | 3 套 + Dark 模式 | 海量主题  |   少量主题   |  海量主题   |
+| **SEO / RSS**     |     ✅ 内置      |   插件    |   ✅ 内置    |   ✅ 内置   |
+| **数据库**        |  D1（全球分布）  |   MySQL   | MySQL/SQLite |     无      |
 
 > **核心差异**：传统博客要么需要 VPS（WordPress/Ghost），要么没有管理后台（Hexo/Hugo）。Nami Blog 的控制面完全运行在 Cloudflare 边缘网络上——D1 数据库、Workers API、Pages 前端——全部免费，自带完整管理后台。
 
@@ -52,8 +52,8 @@
 
 ## 📸 截图
 
-| 前台首页 | 管理后台 |
-|:---:|:---:|
+|               前台首页               |             管理后台              |
+| :----------------------------------: | :-------------------------------: |
 | ![](.github/screenshot-frontend.png) | ![](.github/screenshot-admin.png) |
 
 ## 🏗️ 架构
@@ -78,15 +78,15 @@
 
 ## 🛠 技术栈
 
-| 层级 | 技术 | 说明 |
-|---|---|---|
-| 前端 | **Astro 5** | Static 模式（SSG），构建时预渲染 |
-| API | **Cloudflare Workers** | Hono 框架，RESTful API |
-| 数据库 | **Cloudflare D1** | SQLite 兼容，边缘分布式 |
-| 样式 | **Tailwind CSS 4** | CSS-first 配置，CSS 变量主题 |
-| 认证 | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header |
-| Monorepo | **pnpm workspace** | `apps/api` + `apps/web` + `packages/shared` |
-| 测试 | **Vitest** | 87 个测试用例，含 Workers 集成测试 |
+| 层级     | 技术                      | 说明                                        |
+| -------- | ------------------------- | ------------------------------------------- |
+| 前端     | **Astro 5**               | Static 模式（SSG），构建时预渲染            |
+| API      | **Cloudflare Workers**    | Hono 框架，RESTful API                      |
+| 数据库   | **Cloudflare D1**         | SQLite 兼容，边缘分布式                     |
+| 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                |
+| 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header             |
+| Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared` |
+| 测试     | **Vitest**                | 87 个测试用例，含 Workers 集成测试          |
 
 ## 🚀 快速开始
 
@@ -100,8 +100,8 @@
 
 Cloudflare 控制台 → **Storage & Databases** → **D1** → **Create database**
 
-| 资源 | 名称 | 需要复制 |
-|---|---|---|
+| 资源      | 名称        | 需要复制    |
+| --------- | ----------- | ----------- |
 | D1 数据库 | `nami-blog` | Database ID |
 
 ### 第三步：编辑配置
@@ -122,21 +122,21 @@ CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
 
 Workers & Pages → Create → **Import from Git** → 选你 Fork 的仓库，填写：
 
-| 配置项 | 值 |
-|---|---|
-| Project name | `nami-blog-api` |
-| Build command | `pnpm --filter @nami/shared build` |
+| 配置项         | 值                                                                        |
+| -------------- | ------------------------------------------------------------------------- |
+| Project name   | `nami-blog-api`                                                           |
+| Build command  | `pnpm --filter @nami/shared build`                                        |
 | Deploy command | `pnpm --filter @nami/shared build && pnpm --filter @nami/api deploy:full` |
-| Node version | `22` |
+| Node version   | `22`                                                                      |
 
 点 **Save and Deploy**，部署成功后复制 Worker 地址（如 `https://nami-blog-api.xxx.workers.dev`）。
 
 然后进入 Worker **Settings → Variables and Secrets**，添加 2 个 Secret：
 
-| 变量 | 值 |
-|---|---|
-| `JWT_SECRET` | 随机长字符串（`openssl rand -hex 32`） |
-| `JWT_REFRESH_SECRET` | 另一个随机长字符串 |
+| 变量                 | 值                                     |
+| -------------------- | -------------------------------------- |
+| `JWT_SECRET`         | 随机长字符串（`openssl rand -hex 32`） |
+| `JWT_REFRESH_SECRET` | 另一个随机长字符串                     |
 
 保存后再 Deploy 一次 ☕
 
@@ -144,18 +144,18 @@ Workers & Pages → Create → **Import from Git** → 选你 Fork 的仓库，�
 
 Workers & Pages → Create → **Pages** → **Connect to Git** → 选你 Fork 的仓库，填写：
 
-| 配置项 | 值 |
-|---|---|
-| Project name | `nami-blog` |
-| Build command | `pnpm --filter @nami/shared build && pnpm --filter @nami/web build` |
-| Build output directory | `apps/web/dist` |
+| 配置项                 | 值                                                                  |
+| ---------------------- | ------------------------------------------------------------------- |
+| Project name           | `nami-blog`                                                         |
+| Build command          | `pnpm --filter @nami/shared build && pnpm --filter @nami/web build` |
+| Build output directory | `apps/web/dist`                                                     |
 
 Environment variables 添加：
 
-| 变量 | 值 |
-|---|---|
+| 变量             | 值                                                      |
+| ---------------- | ------------------------------------------------------- |
 | `PUBLIC_API_URL` | `https://nami-blog-api.xxx.workers.dev`（第四步的地址） |
-| `SITE_URL` | `https://nami-blog.你的用户名.pages.dev` |
+| `SITE_URL`       | `https://nami-blog.你的用户名.pages.dev`                |
 
 点 **Save and Deploy** ☕
 
@@ -230,23 +230,23 @@ migrations/       # D1 数据库迁移 SQL
 
 三套二次元风格主题 + 独立 Dark 模式，CSS 变量实现，管理后台可视化切换：
 
-| 主题 | 风格 | 主色调 |
-|---|---|---|
+| 主题           | 风格             | 主色调    |
+| -------------- | ---------------- | --------- |
 | 🌸 樱花 Sakura | 温柔浪漫，粉色系 | `#ec4899` |
-| 🌊 海洋 Ocean | 清凉通透，蓝绿色 | `#0891b2` |
+| 🌊 海洋 Ocean  | 清凉通透，蓝绿色 | `#0891b2` |
 | ✨ 星空 Starry | 深邃宇宙，紫蓝色 | `#8b5cf6` |
 
 每套主题支持明/暗两种模式，`data-theme` + `data-dark` 属性独立控制，任意组合。
 
 ## 📖 文档
 
-| 文档 | 说明 |
-|:---|:---|
-| [部署指南](docs/部署运维文档.md) | 生产环境部署全流程 |
-| [小白上手](docs/小白上手指南.md) | 零基础本地启动指南 |
+| 文档                                       | 说明               |
+| :----------------------------------------- | :----------------- |
+| [部署指南](docs/部署运维文档.md)           | 生产环境部署全流程 |
+| [小白上手](docs/小白上手指南.md)           | 零基础本地启动指南 |
 | [前端功能](docs/前端功能与交互设计文档.md) | 页面结构与交互规范 |
 | [管理后台](docs/管理后台功能与设计文档.md) | 后台功能与安全设计 |
-| [Git 规范](docs/Git工作规范.md) | 分支模型与提交规范 |
+| [Git 规范](docs/Git工作规范.md)            | 分支模型与提交规范 |
 
 ## 🧪 质量
 
