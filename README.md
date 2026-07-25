@@ -130,53 +130,47 @@ nami-blog/
 
 **不需要域名、不需要花钱**，Cloudflare 免费提供 `.workers.dev` 和 `.pages.dev` 子域名。
 
-### 前置准备
+### 第一步：Fork 仓库
+
+打开 https://github.com/elite-silab/nami-blog ，点击右上角 **Fork** 按钮。
+
+### 第二步：创建 D1 数据库
+
+在本地终端执行：
 
 ```bash
-# 安装 Wrangler CLI
 npm install -g wrangler
-
-# 登录 Cloudflare（浏览器会弹出授权页面，点 Allow）
-wrangler login
-```
-
-### 第一步：创建 D1 数据库
-
-```bash
+wrangler login    # 浏览器弹出授权页面，点 Allow
 wrangler d1 create nami-blog
 ```
 
 输出中会显示 `database_id = "xxxx-xxxx-xxxx"` ，**复制这个 ID**。
 
-### 第二步：填写 database_id
+### 第三步：填写 database_id 并提交
 
-打开 `apps/api/wrangler.toml`，把这行：
+在你 Fork 的仓库中，编辑 `apps/api/wrangler.toml`，把这行：
 
 ```toml
 database_id = "<replace-with-production-d1-id>"
 ```
 
-替换为刚才复制的 ID：
+替换为你复制的 ID，然后 commit。
 
-```toml
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-```
-
-### 第三步：执行数据库迁移
+### 第四步：执行数据库迁移
 
 ```bash
 wrangler d1 migrations apply nami-blog --remote --config apps/api/wrangler.toml
 ```
 
-### 第四步：部署 API
+### 第五步：部署 API
 
 ```bash
 cd apps/api && wrangler deploy
 ```
 
-部署成功后记下 API 地址：`https://nami-blog-api.你的用户名.workers.dev`
+记下 API 地址：`https://nami-blog-api.你的用户名.workers.dev`
 
-### 第五步：设置 API 密钥
+### 第六步：设置 API 密钥
 
 打开 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → `nami-blog-api` → **Settings** → **Variables and Secrets**
 
@@ -191,58 +185,51 @@ cd apps/api && wrangler deploy
 
 | Name | Value |
 |---|---|
-| `CORS_ORIGIN` | `https://nami-blog.你的用户名.pages.dev` |
+| `CORS_ORIGIN` | `https://nami-blog.pages.dev` |
 
-### 第六步：创建管理员账号
+### 第七步：创建管理员账号
 
 ```bash
 cd ../.. && pnpm db:seed -- --remote
 ```
 
-按提示输入确认文字和管理员密码。
+### 第八步：Connect to Git 部署前端
 
-### 第七步：部署前端
+1. 打开 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
+2. 选择你 Fork 的 `nami-blog` 仓库
+3. 填写配置：
 
-```bash
-# 构建（把 API 地址换成你的）
-PUBLIC_API_URL=https://nami-blog-api.你的用户名.workers.dev \
-SITE_URL=https://nami-blog.你的用户名.pages.dev \
-pnpm --filter @nami/web build
+| 配置项 | 值 |
+|---|---|
+| Project name | `nami-blog` |
+| Production branch | `main` |
+| Build command | `pnpm --filter @nami/web build` |
+| Build output directory | `apps/web/dist` |
 
-# 上传到 Cloudflare Pages
-PUBLIC_API_URL=https://nami-blog-api.你的用户名.workers.dev \
-SITE_URL=https://nami-blog.你的用户名.pages.dev \
-pnpm exec wrangler pages deploy apps/web/dist --project-name=nami-blog
-```
+4. 点击 **Environment variables**，添加：
 
-### 第八步：验证 ✅
+| 变量 | 值 |
+|---|---|
+| `PUBLIC_API_URL` | `https://nami-blog-api.你的用户名.workers.dev` |
+| `SITE_URL` | `https://nami-blog.pages.dev` |
 
-打开 `https://nami-blog.你的用户名.pages.dev` 看到博客首页，再打开 `/admin/login` 用刚才设的密码登录后台。
+5. 点击 **Save and Deploy** ☕
+
+### 第九步：验证 ✅
+
+部署完成后打开 `https://nami-blog.pages.dev` 看到博客首页，再打开 `/admin/login` 用密码登录后台。
+
+**以后每次 push 到 `main`，Cloudflare Pages 会自动重新构建和部署！**
 
 ---
 
-## 🔄 CI/CD 自动部署
+## 🔄 CI/CD
 
-每次 push 到 `main` 自动部署，不用每次手动执行命令。
+本项目内置 GitHub Actions CI（`.github/workflows/ci.yml`），每次 push 或 PR 自动运行：
 
-### CI Pipeline (`ci.yml`)
+**Lint → TypeCheck → Test → Build**
 
-push 或 PR 时自动运行：Lint → TypeCheck → Test → Build
-
-### CD Pipeline (`deploy.yml`)
-
-push 到 `main` 时自动部署前端到 Cloudflare Pages。
-
-**配置 GitHub Secrets**（仓库 Settings → Secrets → Actions）：
-
-| Secret | 获取方式 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | [Dashboard → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → Create Token → "Edit Cloudflare Workers" 模板 |
-| `CLOUDFLARE_ACCOUNT_ID` | Dashboard 右侧栏 Account ID |
-
-配好后，每次 `git push` 即自动部署。
-
-> 📖 完整部署指南（含 DNS、WAF、缓存规则、灾难恢复）请参阅 [部署运维文档](docs/部署运维文档.md)。
+> CI 只负责检查代码质量，部署由 Cloudflare Pages 的 Connect to Git 自动完成。
 
 ## 🎨 主题系统
 
