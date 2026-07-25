@@ -160,13 +160,13 @@ CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
 1. [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Import from Git**
 2. 选择你 Fork 的仓库，填写：
 
-| 配置项 | 值 |
-|---|---|
-| Project name | `nami-blog-api` |
-| Build command | `pnpm --filter @nami/shared build` |
+| 配置项         | 值                                    |
+| -------------- | ------------------------------------- |
+| Project name   | `nami-blog-api`                       |
+| Build command  | `pnpm --filter @nami/shared build`    |
 | Deploy command | `pnpm --filter @nami/api deploy:full` |
-| Version | `22` |
-| Root directory | `apps/api` |
+| Version        | `22`                                  |
+| Root directory | `apps/api`                            |
 
 3. 点 **Save and Deploy**
 4. 部署成功后复制 Worker 地址（如 `https://nami-blog-api.xxx.workers.dev`）
@@ -175,11 +175,11 @@ CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
 
 Workers & Pages → `nami-blog-api` → **Settings** → **Variables and Secrets**
 
-| Type | Name | Value |
-|---|---|---|
-| Secret | `JWT_SECRET` | 运行 `openssl rand -hex 32` 生成 |
-| Secret | `JWT_REFRESH_SECRET` | 再运行一次生成 |
-| Plaintext | `CORS_ORIGIN` | `https://nami-blog.你的用户名.pages.dev` |
+| Type      | Name                 | Value                                    |
+| --------- | -------------------- | ---------------------------------------- |
+| Secret    | `JWT_SECRET`         | 运行 `openssl rand -hex 32` 生成         |
+| Secret    | `JWT_REFRESH_SECRET` | 再运行一次生成                           |
+| Plaintext | `CORS_ORIGIN`        | `https://nami-blog.你的用户名.pages.dev` |
 
 保存后点 **Deploy** 重新部署一次。
 
@@ -188,19 +188,19 @@ Workers & Pages → `nami-blog-api` → **Settings** → **Variables and Secrets
 1. **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
 2. 选择你 Fork 的仓库，填写：
 
-| 配置项 | 值 |
-|---|---|
-| Project name | `nami-blog` |
-| Production branch | `main` |
-| Build command | `pnpm --filter @nami/web build` |
-| Build output directory | `apps/web/dist` |
+| 配置项                 | 值                              |
+| ---------------------- | ------------------------------- |
+| Project name           | `nami-blog`                     |
+| Production branch      | `main`                          |
+| Build command          | `pnpm --filter @nami/web build` |
+| Build output directory | `apps/web/dist`                 |
 
 3. **Environment variables** 添加：
 
-| 变量 | 值 |
-|---|---|
+| 变量             | 值                                                      |
+| ---------------- | ------------------------------------------------------- |
 | `PUBLIC_API_URL` | `https://nami-blog-api.xxx.workers.dev`（第四步的地址） |
-| `SITE_URL` | `https://nami-blog.你的用户名.pages.dev` |
+| `SITE_URL`       | `https://nami-blog.你的用户名.pages.dev`                |
 
 4. 点 **Save and Deploy** ☕
 
