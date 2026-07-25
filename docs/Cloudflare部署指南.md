@@ -30,10 +30,9 @@
 
 ```toml
 database_id = "粘贴你的 Database ID"
-CORS_ORIGIN = "https://nami-blog.pages.dev"
 ```
 
-先使用计划中的 Pages 地址；如果 Cloudflare 最终显示的地址不同，第六步会回填。点击 **Commit changes** 保存。
+此时还不知道最终的前端地址，`CORS_ORIGIN` 先不用改，第六步再回填。点击 **Commit changes** 保存。
 
 ## 第三步：连接并部署 Workers API
 
@@ -88,16 +87,22 @@ CORS_ORIGIN = "https://nami-blog.pages.dev"
 
 此时还没有最终 Pages 地址，`SITE_URL` 先留空。Pages 中也不要填写 JWT 或管理员密码。点击 **Save and Deploy**，完成后复制 Cloudflare 实际显示的 Pages 地址。
 
-## 第六步：回填真实 Pages 地址
+## 第六步：回填正式前端地址
 
-第一次部署成功后必须完成：
+第一次部署成功后，先确定访客以后真正使用的前端地址：
 
-1. 复制实际 Pages 地址，例如 `https://nami-blog.pages.dev`。
-2. 在 Pages **Settings → Environment variables** 新增 `SITE_URL`，填写完整 Pages 地址，然后重新部署 Pages。
-3. 在 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个 Pages 地址并提交。
-4. Workers Git 集成自动重新部署后，再开始登录测试。
+- 使用 Cloudflare 免费域名：复制 Cloudflare 实际显示的 Pages 地址，例如 `https://nami-blog.pages.dev`。
+- 已绑定自己的前端域名：使用实际对外访问的正式域名，例如 `https://blog.example.com`，不再使用 `.pages.dev` 地址。
 
-第一次 Pages 部署只是为了获得真实地址；第二次部署会用 `SITE_URL` 生成正确的 SEO、Sitemap 和分享链接。
+选好后必须完成：
+
+1. 在 Pages **Settings → Environment variables** 新增 `SITE_URL`，填写上面确定的完整前端地址，然后重新部署 Pages。
+2. 在 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个前端地址并提交。
+3. Workers Git 集成自动重新部署后，再开始登录测试。
+
+使用默认域名时，两处都填 `https://你的项目.pages.dev`；使用自定义域名时，两处都填 `https://blog.example.com`。地址不要带 `/admin` 等页面路径，也不要在末尾加 `/`。
+
+`SITE_URL` 用于生成 SEO 标准链接、Sitemap、RSS 和分享链接；`CORS_ORIGIN` 用于允许该前端访问 API。第一次 Pages 部署只是为了获得真实地址；第二次部署才会使正式的 `SITE_URL` 生效。
 
 ## 第七步：首次登录管理员
 
@@ -129,12 +134,14 @@ CORS_ORIGIN = "https://nami-blog.pages.dev"
 
 ### 页面能打开但 API 请求失败
 
-核对三处地址是否完全一致：Pages 实际地址、`wrangler.toml` 的 `CORS_ORIGIN`、Pages 的 `SITE_URL`。地址末尾不要额外添加路径。
+核对三处地址是否完全一致：浏览器实际访问的前端地址、`wrangler.toml` 的 `CORS_ORIGIN`、Pages 的 `SITE_URL`。地址末尾不要额外添加路径或 `/`。
 
 ### Pages 项目名被占用
 
-使用 Cloudflare 分配或你重新选择的项目名，然后把实际 `.pages.dev` 地址回填到 `CORS_ORIGIN` 和 `SITE_URL`。
+使用 Cloudflare 分配或你重新选择的项目名。如果使用默认域名，把实际 `.pages.dev` 地址回填到 `CORS_ORIGIN` 和 `SITE_URL`；如果已绑定自定义域名，两处均填自定义域名。
 
 ### 想使用自己的域名
 
-分别在 Pages 和 Workers 项目的 **Custom domains / Domains & Routes** 中添加域名，再同步更新 `CORS_ORIGIN`、`PUBLIC_API_URL` 和 `SITE_URL`。
+在 Pages 的 **Custom domains** 绑定前端域名后，将 Pages 的 `SITE_URL` 和 `apps/api/wrangler.toml` 的 `CORS_ORIGIN` 一起改为该正式域名，然后分别重新部署 Pages 和 Worker。
+
+如果 Workers API 也绑定了自己的 API 域名，例如 `https://api.example.com`，还要将 Pages 的 `PUBLIC_API_URL` 改为该地址并重新部署 Pages。

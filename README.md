@@ -52,8 +52,8 @@
 
 ## 📸 截图
 
-|               前台首页               |             管理后台              |
-| :----------------------------------: | :-------------------------------: |
+|                        前台首页                        |                      管理后台                       |
+| :----------------------------------------------------: | :-------------------------------------------------: |
 | ![Nami Blog 前台首页](.github/screenshot-frontend.png) | ![Nami Blog 管理后台](.github/screenshot-admin.png) |
 
 ## 🏗️ 架构
@@ -104,39 +104,36 @@ Cloudflare 控制台 → **Storage & Databases** → **D1** → **Create databas
 | --------- | ----------- | ----------- |
 | D1 数据库 | `nami-blog` | Database ID |
 
-### 第三步：编辑配置
+### 第三步：填写数据库配置
 
-GitHub 打开 `apps/api/wrangler.toml` → 点铅笔 ✏️ → 改两处：
+GitHub 打开 `apps/api/wrangler.toml` → 点铅笔 ✏️ → 先填写第二步复制的 Database ID：
 
 ```toml
 # 粘贴第二步复制的 Database ID
 database_id = "xxxx-xxxx-xxxx-xxxx"
-
-# 先填计划使用的 Pages 地址（第六步按 Cloudflare 实际地址回填）
-CORS_ORIGIN = "https://nami-blog.pages.dev"
 ```
 
-点 **Commit changes** 保存。
+此时还不知道最终的前端地址，`CORS_ORIGIN` 先不用改，第六步再按实际地址回填。点 **Commit changes** 保存。
 
 ### 第四步：部署 API（Worker）
 
 Workers & Pages → Create → **Import from Git** → 选你 Fork 的仓库，填写：
 
-| 配置项         | 值                                   |
-| -------------- | ------------------------------------ |
-| Project name   | `nami-blog-api`                      |
+| 配置项         | 值                                    |
+| -------------- | ------------------------------------- |
+| Project name   | `nami-blog-api`                       |
 | Build command  | `pnpm --filter @nami/api build`       |
 | Deploy command | `pnpm --filter @nami/api deploy:full` |
-| Node version   | `22`                                 |
+| Node version   | `22`                                  |
 
 点 **Save and Deploy**，部署成功后复制 Worker 地址（如 `https://nami-blog-api.xxx.workers.dev`）。
 
 然后进入 Worker **Settings → Variables and Secrets**，添加 3 个 Secret：
 
-| 变量                     | 值                                                        |
-| ------------------------ | --------------------------------------------------------- |
-| `JWT_SECRET`             | 密码管理器生成的随机长字符串                              |
-| `JWT_REFRESH_SECRET`     | 另一个不同的随机长字符串                                  |
+| 变量                     | 值                                                             |
+| ------------------------ | -------------------------------------------------------------- |
+| `JWT_SECRET`             | 密码管理器生成的随机长字符串                                   |
+| `JWT_REFRESH_SECRET`     | 另一个不同的随机长字符串                                       |
 | `ADMIN_INITIAL_PASSWORD` | 自己设置的一次性管理员密码，至少 12 个字符，不能使用本地默认值 |
 
 三个值都不要提交到 GitHub，也不要互相复用。保存后再 Deploy 一次 ☕
@@ -155,24 +152,41 @@ Workers & Pages → Create → **Pages** → **Connect to Git** → 选你 Fork 
 
 首次部署只添加一个 Environment variable：
 
-| 变量             | 值                                                                        |
-| ---------------- | ------------------------------------------------------------------------- |
+| 变量             | 值                                                                         |
+| ---------------- | -------------------------------------------------------------------------- |
 | `PUBLIC_API_URL` | 第四步复制的完整 Worker 地址，例如 `https://nami-blog-api.xxx.workers.dev` |
 
-此时还没有最终 Pages 地址，`SITE_URL` 先不要填写。点 **Save and Deploy** 完成第一次部署 ☕
+此时还没有最终 Pages 地址，`SITE_URL` 先不填写。点 **Save and Deploy** 完成第一次部署 ☕
 
-### 第六步：回填地址
+### 第六步：回填正式地址
 
-部署完成后复制 Cloudflare 显示的实际 Pages 地址，例如 `https://nami-blog.pages.dev`，然后完成两处回填：
+部署成功后，先确定访客以后真正使用的前端地址：
 
-1. 进入 Pages **Settings → Environment variables**，新增 `SITE_URL`，值为刚复制的完整地址，然后重新部署 Pages。
-2. 回 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个地址：
+- 使用 Cloudflare 免费域名：复制实际 Pages 地址，例如 `https://your-project.pages.dev`。
+- 已绑定自己的域名：使用自己的正式域名，例如 `https://blog.example.com`，不再使用 `.pages.dev` 地址。
+
+然后完成两处同步：
+
+1. 进入 Pages **Settings → Environment variables**，新增 `SITE_URL`，值填上面确定的完整前端地址，然后重新部署 Pages。
+2. 回 GitHub 编辑 `apps/api/wrangler.toml`，把 `CORS_ORIGIN` 改为同一个地址：
 
 ```toml
-CORS_ORIGIN = "https://nami-blog.pages.dev"
+CORS_ORIGIN = "https://your-project.pages.dev"
 ```
 
-Commit 后 Workers Git 集成会自动重新部署。两边都完成后，SEO、Sitemap 和浏览器跨域地址才会一致。
+如果使用自定义域名，Pages 环境变量填：
+
+```dotenv
+SITE_URL=https://blog.example.com
+```
+
+`apps/api/wrangler.toml` 填：
+
+```toml
+CORS_ORIGIN = "https://blog.example.com"
+```
+
+`SITE_URL` 用于生成 SEO 标准链接、Sitemap、RSS 和分享链接；`CORS_ORIGIN` 用于允许该前端访问 API。两者必须指向实际对外使用的同一个前端域名，不要带页面路径，也不要在末尾加 `/`。Commit 后 Workers 会自动重新部署。
 
 ### 第七步：登录
 
@@ -249,14 +263,14 @@ migrations/       # D1 数据库迁移 SQL
 
 ## 📖 文档
 
-| 文档                                                   | 说明                   |
-| :----------------------------------------------------- | :--------------------- |
-| [Cloudflare 图文部署](docs/Cloudflare部署指南.md)      | Dashboard/Git 集成部署 |
-| [部署运维](docs/部署运维文档.md)                       | 生产环境高级运维       |
-| [小白上手](docs/小白上手指南.md)                       | 零基础本地启动指南     |
-| [前端功能](docs/前端功能与交互设计文档.md)             | 页面结构与交互规范     |
-| [管理后台](docs/管理后台功能与设计文档.md)             | 后台功能与安全设计     |
-| [Git 规范](docs/Git工作规范.md)                        | 分支模型与提交规范     |
+| 文档                                              | 说明                   |
+| :------------------------------------------------ | :--------------------- |
+| [Cloudflare 图文部署](docs/Cloudflare部署指南.md) | Dashboard/Git 集成部署 |
+| [部署运维](docs/部署运维文档.md)                  | 生产环境高级运维       |
+| [小白上手](docs/小白上手指南.md)                  | 零基础本地启动指南     |
+| [前端功能](docs/前端功能与交互设计文档.md)        | 页面结构与交互规范     |
+| [管理后台](docs/管理后台功能与设计文档.md)        | 后台功能与安全设计     |
+| [Git 规范](docs/Git工作规范.md)                   | 分支模型与提交规范     |
 
 ## 🧪 质量
 
