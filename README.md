@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/images/logo.svg" width="80" alt="Nami Blog" />
+  <img src="apps/web/public/images/logo-icon.svg" width="80" alt="Nami Blog" />
 </p>
 
 <h1 align="center">Nami 娜美博客</h1>
@@ -12,12 +12,12 @@
   <a href="#-快速开始">快速开始</a> •
   <a href="#-截图">截图</a> •
   <a href="#-主题系统">主题</a> •
-  <a href="https://github.com/elite-silab/nami-blog/wiki">文档</a>
+  <a href="#-文档">文档</a>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
   <img src="https://img.shields.io/badge/Frontend-Astro%205-BC52EE?logo=astro&logoColor=white" alt="Astro" />
-  <img src="https://img.shields.io/badge/API-Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white" alt="Workers" />
   <img src="https://img.shields.io/badge/Database-D1-0052CC?logo=sqlite&logoColor=white" alt="D1" />
   <img src="https://img.shields.io/badge/Style-Tailwind%204-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind" />
   <img src="https://img.shields.io/badge/Test-87%20passed-brightgreen?logo=vitest&logoColor=white" alt="Tests" />
@@ -100,8 +100,9 @@
 
 Cloudflare 控制台 → **Storage & Databases** → **D1** → **Create database**
 
-- 名称：`nami-blog`
-- 创建后复制 **Database ID**
+| 资源 | 名称 | 需要复制 |
+|---|---|---|
+| D1 数据库 | `nami-blog` | Database ID |
 
 ### 第三步：编辑配置
 
@@ -111,7 +112,7 @@ GitHub 打开 `apps/api/wrangler.toml` → 点铅笔 ✏️ → 改两处：
 # 粘贴第二步复制的 Database ID
 database_id = "xxxx-xxxx-xxxx-xxxx"
 
-# CORS_ORIGIN 改为你的 Pages 地址（第六步创建后会知道，先填占位符）
+# CORS_ORIGIN 先填占位符（第六步后会回填）
 CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
 ```
 
@@ -125,7 +126,7 @@ Workers & Pages → Create → **Import from Git** → 选你 Fork 的仓库，�
 |---|---|
 | Project name | `nami-blog-api` |
 | Build command | `pnpm --filter @nami/shared build` |
-| Deploy command | `pnpm --filter @nami/api deploy:full` |
+| Deploy command | `pnpm --filter @nami/shared build && pnpm --filter @nami/api deploy:full` |
 | Node version | `22` |
 
 点 **Save and Deploy**，部署成功后复制 Worker 地址（如 `https://nami-blog-api.xxx.workers.dev`）。
@@ -158,9 +159,9 @@ Environment variables 添加：
 
 点 **Save and Deploy** ☕
 
-### 第六步：回填 CORS 地址
+### 第六步：回填地址
 
-回 GitHub 再编辑 `wrangler.toml`，把 `CORS_ORIGIN` 改为 Pages 的实际地址：
+回 GitHub 再编辑 `wrangler.toml`，补上正式地址：
 
 ```toml
 CORS_ORIGIN = "https://nami-blog.你的用户名.pages.dev"
@@ -175,9 +176,55 @@ Commit 后自动重新部署。
 - 用户名：`admin`
 - 密码：`nami-local-admin`（默认密码，登录后立即修改！）
 
+> 📖 详细图文见 [小白部署指南](docs/小白上手指南.md) · 命令行部署见 [部署运维文档](docs/部署运维文档.md)
+
 ### ✅ 完成
 
 以后每次 push 到 `main`，API 和前端都会自动重新部署！
+
+## 💻 本地开发
+
+```bash
+git clone https://github.com/你的用户名/nami-blog.git && cd nami-blog
+pnpm install && cp .env.example .env
+pnpm db:migrate && pnpm dev
+```
+
+- 前端：`http://localhost:4321`
+- 管理后台：`http://localhost:4321/admin/login`（`admin` / `nami-local-admin`）
+- API：`http://localhost:8788`
+
+### 常用命令
+
+```bash
+pnpm dev              # 启动 API + Web
+pnpm build            # 构建
+pnpm test             # 运行测试 (87 tests)
+pnpm typecheck        # 类型检查
+pnpm lint             # ESLint
+pnpm db:migrate       # 本地 D1 迁移
+pnpm db:seed          # 创建管理员
+pnpm db:reset         # 重置本地数据库
+```
+
+## 📦 项目结构
+
+```
+apps/
+├── api/          # Cloudflare Worker / Hono API
+└── web/          # Astro SSG 前端 + 管理后台
+packages/
+└── shared/       # TypeScript 跨层共享类型
+docs/             # 架构、部署、交互文档
+migrations/       # D1 数据库迁移 SQL
+```
+
+## 🔒 安全
+
+- **JWT 会话**：可轮换 Access + Refresh Token，HttpOnly Cookie 传输
+- **密码安全**：bcrypt 哈希存储，管理后台支持修改密码
+- **评论审核**：管理员审核制，敏感词自动过滤
+- **建议**：管理后台额外使用 Cloudflare Access 保护
 
 ## 🎨 主题系统
 
@@ -191,87 +238,45 @@ Commit 后自动重新部署。
 
 每套主题支持明/暗两种模式，`data-theme` + `data-dark` 属性独立控制，任意组合。
 
-## 💻 本地开发
-
-```bash
-git clone https://github.com/你的用户名/nami-blog.git
-cd nami-blog
-pnpm install
-cp .env.example .env
-
-pnpm dev
-# → API:  http://localhost:8788
-# → Web:  http://localhost:4321
-```
-
-常用命令：
-
-```bash
-pnpm dev              # 启动 API + Web
-pnpm build            # 构建
-pnpm test             # 运行测试 (87 tests)
-pnpm typecheck        # 类型检查
-pnpm lint             # ESLint
-pnpm db:migrate       # 本地 D1 迁移
-pnpm db:seed          # 创建管理员
-pnpm db:reset         # 重置本地数据库
-```
-
-## 🏗 项目结构
-
-```
-nami-blog/
-├── apps/
-│   ├── api/                      # Cloudflare Workers API (Hono + D1)
-│   │   ├── src/
-│   │   │   ├── index.ts          # Hono 入口
-│   │   │   ├── routes/           # API 路由
-│   │   │   ├── middleware/       # 鉴权中间件
-│   │   │   ├── lib/              # auth.ts, pagination.ts
-│   │   │   └── __tests__/        # 测试
-│   │   └── wrangler.toml         # Workers 配置
-│   └── web/                      # Astro SSG 前端
-│       ├── src/
-│       │   ├── pages/            # 页面
-│       │   ├── components/       # 组件
-│       │   ├── layouts/          # 布局
-│       │   ├── lib/              # 工具函数
-│       │   └── styles/           # CSS 变量主题
-│       └── astro.config.mjs
-├── packages/
-│   └── shared/                   # @nami/shared (Zod schemas)
-├── migrations/                   # D1 迁移 SQL
-├── .github/workflows/            # CI
-└── docs/                         # 文档
-```
-
 ## 📖 文档
 
 | 文档 | 说明 |
-|---|---|
-| [部署运维文档](docs/部署运维文档.md) | CI/CD、监控、灾难恢复 |
-| [小白上手指南](docs/小白上手指南.md) | 零基础本地启动指南 |
-| [前端功能文档](docs/前端功能与交互设计文档.md) | 页面结构、交互规范 |
-| [管理后台文档](docs/管理后台功能与设计文档.md) | 后台架构、安全设计 |
-| [Git 工作规范](docs/Git工作规范.md) | 分支模型、提交规范 |
+|:---|:---|
+| [部署指南](docs/部署运维文档.md) | 生产环境部署全流程 |
+| [小白上手](docs/小白上手指南.md) | 零基础本地启动指南 |
+| [前端功能](docs/前端功能与交互设计文档.md) | 页面结构与交互规范 |
+| [管理后台](docs/管理后台功能与设计文档.md) | 后台功能与安全设计 |
+| [Git 规范](docs/Git工作规范.md) | 分支模型与提交规范 |
 
-## 🔄 CI/CD
+## 🧪 质量
 
-GitHub Actions 每次 push/PR 自动运行：**Lint → TypeCheck → Test → Build**
-
-部署由 Cloudflare Git 集成自动完成，无需额外配置。
+```bash
+pnpm test        # Vitest 87 个用例
+pnpm typecheck   # TypeScript 类型检查
+pnpm lint        # ESLint
+pnpm build       # 全量构建
+```
 
 ## 🤝 参与贡献
 
-1. Fork → 创建功能分支 `nami-feat/your-feature`
-2. 遵循 [Conventional Commits](https://www.conventionalcommits.org/)
-3. 确保 `pnpm lint` + `pnpm typecheck` + `pnpm test` 全部通过
-4. 提交 PR
+欢迎 Issue 和 Pull Request！在提交 PR 前请确保：
 
-## 📜 许可
+- `pnpm test` 全部通过
+- 新功能附带对应测试用例（项目遵循 TDD）
+- 代码风格与现有项目一致
 
-[MIT](LICENSE)
+## 📄 协议
+
+[MIT](LICENSE) — 自由使用、修改和分发。
 
 ## ⭐ Star History
 
+如果你喜欢这个项目，请给一个 Star 支持！
+
 [![Star History Chart](https://api.star-history.com/svg?repos=elite-silab/nami-blog&type=Date)](https://star-history.com/#elite-silab/nami-blog&Date)
+
+---
+
+<p align="center">
+  <sub>Built with ❤️ on Cloudflare Workers</sub>
+</p>
