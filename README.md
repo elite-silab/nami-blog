@@ -18,34 +18,34 @@
 
 ## ✨ 特色
 
-| | |
-|---|---|
-| 🌸 **三套二次元主题** | 樱花 / 海洋 / 星空，管理后台一键切换，独立 Dark 模式 |
-| ⚡ **边缘渲染** | Astro SSG 静态生成 + Cloudflare CDN 全球分发，毫秒级响应 |
-| 💬 **自建评论系统** | 嵌套回复、敏感词过滤、管理员审核，无第三方依赖 |
-| 🔐 **可轮换 JWT 会话** | HttpOnly Cookie + 标签页令牌回退 |
-| 📱 **响应式交互** | 阅读进度条、TOC 目录、代码块复制、移动端汉堡菜单 |
-| 📡 **RSS + SEO** | RSS 订阅、Open Graph、Twitter Card、JSON-LD 结构化数据 |
-| 🩺 **健康检查** | `/healthz` 端点、统一错误响应、公开 API 缓存策略 |
+|                        |                                                          |
+| ---------------------- | -------------------------------------------------------- |
+| 🌸 **三套二次元主题**  | 樱花 / 海洋 / 星空，管理后台一键切换，独立 Dark 模式     |
+| ⚡ **边缘渲染**        | Astro SSG 静态生成 + Cloudflare CDN 全球分发，毫秒级响应 |
+| 💬 **自建评论系统**    | 嵌套回复、敏感词过滤、管理员审核，无第三方依赖           |
+| 🔐 **可轮换 JWT 会话** | HttpOnly Cookie + 标签页令牌回退                         |
+| 📱 **响应式交互**      | 阅读进度条、TOC 目录、代码块复制、移动端汉堡菜单         |
+| 📡 **RSS + SEO**       | RSS 订阅、Open Graph、Twitter Card、JSON-LD 结构化数据   |
+| 🩺 **健康检查**        | `/healthz` 端点、统一错误响应、公开 API 缓存策略         |
 
 ## 📸 截图
 
-| 前台首页 | 管理后台 |
-|---|---|
+| 前台首页                                 | 管理后台                              |
+| ---------------------------------------- | ------------------------------------- |
 | ![前台](.github/screenshot-frontend.png) | ![后台](.github/screenshot-admin.png) |
 
 ## 🛠 技术栈
 
-| 层级 | 技术 | 说明 |
-|---|---|---|
-| 前端 | **Astro 5** | Static 模式 (SSG)，构建时预渲染 |
-| API | **Cloudflare Workers** | Hono 框架，RESTful API |
-| 数据库 | **Cloudflare D1** | SQLite 兼容，边缘分布式 |
-| 样式 | **Tailwind CSS 4** | CSS-first 配置，CSS 变量主题 |
-| 认证 | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header |
-| Monorepo | **pnpm workspace** | `apps/api` + `apps/web` + `packages/shared` |
-| 测试 | **Vitest** | 63 个测试用例，含 Workers 集成测试 |
-| CI/CD | **GitHub Actions** | 自动 lint / test / build / 部署到 Cloudflare |
+| 层级     | 技术                      | 说明                                         |
+| -------- | ------------------------- | -------------------------------------------- |
+| 前端     | **Astro 5**               | Static 模式 (SSG)，构建时预渲染              |
+| API      | **Cloudflare Workers**    | Hono 框架，RESTful API                       |
+| 数据库   | **Cloudflare D1**         | SQLite 兼容，边缘分布式                      |
+| 样式     | **Tailwind CSS 4**        | CSS-first 配置，CSS 变量主题                 |
+| 认证     | **JWT** (jose + bcryptjs) | HttpOnly Cookie + Bearer Header              |
+| Monorepo | **pnpm workspace**        | `apps/api` + `apps/web` + `packages/shared`  |
+| 测试     | **Vitest**                | 63 个测试用例，含 Workers 集成测试           |
+| CI/CD    | **GitHub Actions**        | 自动 lint / test / build / 部署到 Cloudflare |
 
 ## 🚀 快速开始
 
@@ -130,10 +130,10 @@ nami-blog/
 
 本项目部署为两个独立的 Cloudflare 服务：
 
-| 服务 | 类型 | 说明 |
-|---|---|---|
+| 服务            | 类型    | 说明                    |
+| --------------- | ------- | ----------------------- |
 | `nami-blog-api` | Workers | RESTful API + D1 数据库 |
-| `nami-blog-web` | Pages | Astro SSG 静态前端 |
+| `nami-blog-web` | Pages   | Astro SSG 静态前端      |
 
 ### 1. 部署 API
 
@@ -158,10 +158,10 @@ pnpm deploy:api
 
 在 Cloudflare Pages → Settings → Environment variables 中填写：
 
-| 变量 | 值 |
-|---|---|
+| 变量             | 值                             |
+| ---------------- | ------------------------------ |
 | `PUBLIC_API_URL` | `https://your-api.workers.dev` |
-| `SITE_URL` | `https://your-site.pages.dev` |
+| `SITE_URL`       | `https://your-site.pages.dev`  |
 
 ```bash
 pnpm deploy:web
@@ -175,11 +175,11 @@ pnpm deploy:web
 
 每次 push 到 `main` 或 PR 时自动运行：
 
-| 阶段 | 内容 |
-|---|---|
-| **Lint & TypeCheck** | ESLint + TypeScript 类型检查 |
-| **Test** | Vitest 全量测试（63 个用例） |
-| **Build** | 构建 API + Web，上传产物 artifact |
+| 阶段                 | 内容                              |
+| -------------------- | --------------------------------- |
+| **Lint & TypeCheck** | ESLint + TypeScript 类型检查      |
+| **Test**             | Vitest 全量测试（63 个用例）      |
+| **Build**            | 构建 API + Web，上传产物 artifact |
 
 ### CD Pipeline (`deploy.yml`)
 
@@ -189,10 +189,10 @@ push 到 `main` 分支时自动部署前端到 Cloudflare Pages。
 
 在仓库 **Settings → Secrets and variables → Actions** 中添加：
 
-| Secret | 说明 | 获取方式 |
-|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API 令牌 | [Dashboard → My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → 创建 Token → 选择 "Edit Cloudflare Workers" 模板 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID | Dashboard 右侧栏 → Account ID |
+| Secret                  | 说明                | 获取方式                                                                                                                                 |
+| ----------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Cloudflare API 令牌 | [Dashboard → My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) → 创建 Token → 选择 "Edit Cloudflare Workers" 模板 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID  | Dashboard 右侧栏 → Account ID                                                                                                            |
 
 配好后，每次 push 到 `main` 即自动构建并部署。
 
@@ -202,24 +202,24 @@ push 到 `main` 分支时自动部署前端到 Cloudflare Pages。
 
 三套二次元风格主题 + 独立 Dark 模式，通过 CSS 变量实现，管理后台可视化切换：
 
-| 主题 | 风格 | 主色调 |
-|---|---|---|
+| 主题           | 风格             | 主色调    |
+| -------------- | ---------------- | --------- |
 | 🌸 樱花 Sakura | 温柔浪漫，粉色系 | `#ec4899` |
-| 🌊 海洋 Ocean | 清凉通透，蓝绿色 | `#0891b2` |
+| 🌊 海洋 Ocean  | 清凉通透，蓝绿色 | `#0891b2` |
 | ✨ 星空 Starry | 深邃宇宙，紫蓝色 | `#8b5cf6` |
 
 每套主题支持明/暗两种模式，`data-theme` + `data-dark` 属性独立控制，任意组合。
 
 ## 📖 文档
 
-| 文档 | 说明 |
-|---|---|
-| [部署运维文档](docs/部署运维文档.md) | CI/CD、监控、灾难恢复 |
-| [小白上手指南](docs/小白上手指南.md) | 零基础本地启动指南 |
-| [前端功能文档](docs/前端功能与交互设计文档.md) | 页面结构、交互规范 |
-| [管理后台文档](docs/管理后台功能与设计文档.md) | 后台架构、安全设计 |
-| [OpenAPI 契约](openapi/nami-blog.yaml) | API 路径、字段和响应 |
-| [Git 工作规范](docs/Git工作规范.md) | 分支模型、提交规范 |
+| 文档                                           | 说明                  |
+| ---------------------------------------------- | --------------------- |
+| [部署运维文档](docs/部署运维文档.md)           | CI/CD、监控、灾难恢复 |
+| [小白上手指南](docs/小白上手指南.md)           | 零基础本地启动指南    |
+| [前端功能文档](docs/前端功能与交互设计文档.md) | 页面结构、交互规范    |
+| [管理后台文档](docs/管理后台功能与设计文档.md) | 后台架构、安全设计    |
+| [OpenAPI 契约](openapi/nami-blog.yaml)         | API 路径、字段和响应  |
+| [Git 工作规范](docs/Git工作规范.md)            | 分支模型、提交规范    |
 
 ## 🤝 参与贡献
 
