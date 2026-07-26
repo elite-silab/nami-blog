@@ -197,4 +197,10 @@ export async function seedDatabase() {
   await DB.prepare(
     `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('social_links', '{"github":"https://github.com/test-user"}')`,
   ).run();
+  await DB.prepare(
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('site_theme', '"sakura"')`,
+  ).run();
+  await DB.prepare(
+    `INSERT OR IGNORE INTO site_settings (key, value) VALUES ('comment_enabled', 'true')`,
+  ).run();
 }

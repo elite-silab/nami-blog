@@ -1,8 +1,10 @@
 # ADR-0001: 使用 Pages Deploy Hook 更新静态前台
 
+> **状态：已废弃。** 该方案已被 [ADR-0002：采用 Next.js 单 Worker 架构](./0002-adopt-nextjs-single-worker.md) 取代。
+
 ## Status
 
-Accepted
+Superseded by ADR-0002
 
 ## Context
 

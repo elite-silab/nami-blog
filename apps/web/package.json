@@ -4,28 +4,33 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "lint": "eslint src/",
-    "typecheck": "astro check && tsc --noEmit",
+    "dev": "next dev --turbopack -p 4322",
+    "build": "next build",
+    "cf:build": "node scripts/build-worker.mjs",
+    "preview": "opennextjs-cloudflare preview --config ../../wrangler.jsonc",
+    "lint": "eslint src scripts --max-warnings=0",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.2.0",
-    "@astrojs/rss": "^4.0.19",
-    "@astrojs/sitemap": "^3.3.0",
+    "@nami/api": "workspace:*",
     "@nami/shared": "workspace:*",
-    "astro": "^5.8.0",
+    "@opennextjs/cloudflare": "1.20.2",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tailwindcss": "^4.1.0"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.0",
+    "@cloudflare/workers-types": "^5.20260724.1",
     "@eslint/js": "^9.0.0",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
+    "eslint-config-next": "16.2.12",
     "typescript": "^5.8.0",
-    "typescript-eslint": "^8.0.0",
     "vitest": "^4.1.0"
   }
 }

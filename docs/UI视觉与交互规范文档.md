@@ -459,27 +459,25 @@ Tailwind CSS 4 采用 CSS-first 配置方式，不再使用 `tailwind.config.ts`
 }
 ```
 
-### 10.2 astro.config.mjs 中的 Tailwind 集成
+### 10.2 Next.js 中的 Tailwind 集成
 
-Tailwind CSS 4 通过 Vite 插件集成，不使用 `@astrojs/tailwind`：
+Tailwind CSS 4 通过 `apps/web/postcss.config.mjs` 接入 Next.js：
 
 ```js
-import tailwindcss from "@tailwindcss/vite";
-
-export default defineConfig({
-  vite: {
-    plugins: [tailwindcss()],
+export default {
+  plugins: {
+    "@tailwindcss/postcss": {},
   },
-});
+};
 ```
 
 ### 10.3 排版插件
 
-Tailwind CSS 4 使用 CSS 导入方式引入插件：
+Tailwind CSS 4 使用 CSS 导入，文章排版样式由项目的 `.prose` Token 统一维护：
 
 ```css
 @import "tailwindcss";
-@plugin "@tailwindcss/typography"; /* 文章排版 prose 类 */
+.prose { max-width: 68ch; line-height: 1.8; }
 ```
 
 ---

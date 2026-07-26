@@ -3,19 +3,18 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "dev": "wrangler dev --port 8788 --env-file ../../.env",
-    "build": "wrangler deploy --dry-run --env=\"\" --outdir=dist",
-    "deploy": "wrangler deploy --env=\"\"",
-    "deploy:full": "wrangler d1 migrations apply nami-blog --remote && wrangler deploy --env=\"\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "db:migrate": "wrangler d1 migrations apply nami-blog --local",
+    "db:migrate": "CI=true wrangler d1 migrations apply nami-blog --local --config ../../wrangler.jsonc",
     "db:seed": "node scripts/seed.mjs",
-    "db:reset": "wrangler d1 delete nami-blog --local --yes 2>/dev/null; wrangler d1 create nami-blog --local && wrangler d1 migrations apply nami-blog --local"
+    "db:reset": "wrangler d1 delete nami-blog --local --yes --config ../../wrangler.jsonc 2>/dev/null; wrangler d1 create nami-blog --local --config ../../wrangler.jsonc && wrangler d1 migrations apply nami-blog --local --config ../../wrangler.jsonc"
   },
   "dependencies": {
     "@nami/shared": "workspace:*",

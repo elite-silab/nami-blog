@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <section className="mx-auto max-w-xl px-4 py-24 text-center"><p className="font-display text-8xl text-[var(--color-primary)]/30">404</p><h1 className="mt-4 text-3xl font-bold">没有找到这个页面</h1><p className="mt-3 text-[var(--color-text-secondary)]">它可能已经移动、删除，或者地址写错了。</p><Link href="/" className="mt-8 inline-block rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-white">返回首页</Link></section>; }

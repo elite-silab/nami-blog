@@ -1,5 +1,4 @@
-export const ADMIN_API_BASE =
-  import.meta.env.PUBLIC_API_URL || "http://localhost:8788";
+export const ADMIN_API_BASE = "";
 
 const SESSION_KEY = "nami-admin-session";
 

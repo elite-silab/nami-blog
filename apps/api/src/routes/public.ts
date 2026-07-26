@@ -205,8 +205,12 @@ publicRoutes.get("/settings", async (c) => {
   const DB = c.env.DB;
   const publicKeys = [
     "site_name",
+    "site_subtitle",
     "site_description",
+    "seo_description",
     "site_about",
+    "site_theme",
+    "comment_enabled",
     "icp_number",
     "social_links",
   ];

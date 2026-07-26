@@ -6,9 +6,9 @@ import type { Env } from "../index";
 import { adminAuth } from "../middleware/auth";
 import { parsePagination } from "../lib/pagination";
 import {
-  noPagesRebuildNeeded,
-  triggerPagesRebuild,
-} from "../lib/pages-deploy";
+  noPublicContentChange,
+  publicContentChanged,
+} from "../lib/publication";
 import {
   exportSiteBackup,
   importSiteBackup,
@@ -266,11 +266,11 @@ adminRoutes.post("/posts", async (c) => {
     }
   }
 
-  const deployment = isPublicPost(postStatus, isPublic)
-    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-    : noPagesRebuildNeeded();
+  const publication = isPublicPost(postStatus, isPublic)
+    ? publicContentChanged()
+    : noPublicContentChange();
 
-  return c.json({ data: { id: postId, deployment } });
+  return c.json({ data: { id: postId, publication } });
 });
 
 adminRoutes.put("/posts/:id", async (c) => {
@@ -395,11 +395,11 @@ adminRoutes.put("/posts/:id", async (c) => {
   const affectsPublicSite =
     isPublicPost(existing.status, existing.is_public) ||
     isPublicPost(finalStatus, finalIsPublic);
-  const deployment = affectsPublicSite
-    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-    : noPagesRebuildNeeded();
+  const publication = affectsPublicSite
+    ? publicContentChanged()
+    : noPublicContentChange();
 
-  return c.json({ data: { message: "更新成功", deployment } });
+  return c.json({ data: { message: "更新成功", publication } });
 });
 
 adminRoutes.delete("/posts/:id", async (c) => {
@@ -421,10 +421,10 @@ adminRoutes.delete("/posts/:id", async (c) => {
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
 
-  const deployment = isPublicPost(existing.status, existing.is_public)
-    ? await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL)
-    : noPagesRebuildNeeded();
-  return c.json({ data: { message: "文章已删除", deployment } });
+  const publication = isPublicPost(existing.status, existing.is_public)
+    ? publicContentChanged()
+    : noPublicContentChange();
+  return c.json({ data: { message: "文章已删除", publication } });
 });
 
 // ═══════════════════════════════════════════
@@ -459,8 +459,7 @@ adminRoutes.post("/categories", async (c) => {
     .bind(body.name, body.slug, body.description || null, body.sort_order || 0)
     .run();
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { id: result.meta.last_row_id, deployment } });
+  return c.json({ data: { id: result.meta.last_row_id, publication: publicContentChanged() } });
 });
 
 adminRoutes.put("/categories/:id", async (c) => {
@@ -482,8 +481,7 @@ adminRoutes.put("/categories/:id", async (c) => {
     )
     .run();
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "更新成功", deployment } });
+  return c.json({ data: { message: "更新成功", publication: publicContentChanged() } });
 });
 
 adminRoutes.delete("/categories/:id", async (c) => {
@@ -495,8 +493,7 @@ adminRoutes.delete("/categories/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "分类不存在" } }, 404);
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "分类已删除", deployment } });
+  return c.json({ data: { message: "分类已删除", publication: publicContentChanged() } });
 });
 
 // ═══════════════════════════════════════════
@@ -530,8 +527,7 @@ adminRoutes.post("/tags", async (c) => {
     .bind(body.name, body.slug, body.color || null)
     .run();
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { id: result.meta.last_row_id, deployment } });
+  return c.json({ data: { id: result.meta.last_row_id, publication: publicContentChanged() } });
 });
 
 adminRoutes.put("/tags/:id", async (c) => {
@@ -551,8 +547,7 @@ adminRoutes.put("/tags/:id", async (c) => {
     )
     .run();
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "更新成功", deployment } });
+  return c.json({ data: { message: "更新成功", publication: publicContentChanged() } });
 });
 
 adminRoutes.delete("/tags/:id", async (c) => {
@@ -564,8 +559,7 @@ adminRoutes.delete("/tags/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "标签不存在" } }, 404);
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "标签已删除", deployment } });
+  return c.json({ data: { message: "标签已删除", publication: publicContentChanged() } });
 });
 
 // ═══════════════════════════════════════════
@@ -681,8 +675,7 @@ adminRoutes.post("/friends", async (c) => {
     )
     .run();
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { id: result.meta.last_row_id, deployment } });
+  return c.json({ data: { id: result.meta.last_row_id, publication: publicContentChanged() } });
 });
 
 adminRoutes.put("/friends/:id", async (c) => {
@@ -707,8 +700,7 @@ adminRoutes.put("/friends/:id", async (c) => {
   if (result.meta.changes === 0) {
     return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
   }
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "更新成功", deployment } });
+  return c.json({ data: { message: "更新成功", publication: publicContentChanged() } });
 });
 
 adminRoutes.delete("/friends/:id", async (c) => {
@@ -720,8 +712,7 @@ adminRoutes.delete("/friends/:id", async (c) => {
 
   if (result.meta.changes === 0)
     return c.json({ error: { code: "NOT_FOUND", message: "友链不存在" } }, 404);
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "友链已删除", deployment } });
+  return c.json({ data: { message: "友链已删除", publication: publicContentChanged() } });
 });
 
 // ═══════════════════════════════════════════
@@ -787,8 +778,7 @@ adminRoutes.post("/backup/import", async (c) => {
   }
 
   await importSiteBackup(c.env.DB, validation.backup, adminId);
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "备份已导入", deployment } });
+  return c.json({ data: { message: "备份已导入", publication: publicContentChanged() } });
 });
 
 // ═══════════════════════════════════════════
@@ -854,6 +844,5 @@ adminRoutes.put("/settings", async (c) => {
       .run();
   }
 
-  const deployment = await triggerPagesRebuild(c.env.PAGES_DEPLOY_HOOK_URL);
-  return c.json({ data: { message: "设置已保存", deployment } });
+  return c.json({ data: { message: "设置已保存", publication: publicContentChanged() } });
 });

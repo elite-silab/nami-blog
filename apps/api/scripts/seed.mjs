@@ -105,7 +105,7 @@ async function main() {
     "nami-blog",
     isRemote ? "--remote" : "--local",
     "--config",
-    "wrangler.toml",
+    "../../wrangler.jsonc",
     "--command",
     sql,
   ];

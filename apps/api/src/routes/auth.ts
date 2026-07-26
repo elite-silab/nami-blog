@@ -16,6 +16,8 @@ import { adminAuth } from "../middleware/auth";
 export const authRoutes = new Hono<Env>();
 
 const LOCAL_DEFAULT_ADMIN_PASSWORD = "nami-local-admin";
+const LEGACY_DEFAULT_ADMIN_HASH =
+  "$2b$10$nyhhqa07kaOJOHNGeEQxIu6cxauFp608ZqJwQuxO7mFEMZH/ICWhu";
 
 type AdminUser = {
   id: number;
@@ -96,8 +98,9 @@ authRoutes.post("/login", async (c) => {
 
   if (canBootstrapAdmin) {
     const existingAdmin = await DB.prepare(
-      "SELECT id FROM users WHERE role = 'admin' AND deleted_at IS NULL LIMIT 1",
-    ).first<{ id: number }>();
+      `SELECT id, password_hash, status FROM users
+       WHERE role = 'admin' AND deleted_at IS NULL LIMIT 1`,
+    ).first<{ id: number; password_hash: string; status: string }>();
 
     if (!existingAdmin) {
       const passwordHash = await bcrypt.hash(body.password, 12);
@@ -116,6 +119,26 @@ authRoutes.post("/login", async (c) => {
         `SELECT id, username, password_hash, role FROM users
          WHERE username = 'admin' AND status = 'active' AND deleted_at IS NULL LIMIT 1`,
       ).first<AdminUser>();
+    } else if (
+      existingAdmin.status === "disabled" &&
+      existingAdmin.password_hash === LEGACY_DEFAULT_ADMIN_HASH
+    ) {
+      // Migration 0004 disabled the historic public default account. Allow the
+      // owner to replace that exact known hash with the configured one-time
+      // Secret, without making arbitrary disabled administrators resettable.
+      const passwordHash = await bcrypt.hash(body.password, 12);
+      await DB.prepare(
+        `UPDATE users SET password_hash = ?, status = 'active', updated_at = datetime('now')
+         WHERE id = ? AND password_hash = ? AND status = 'disabled'`,
+      )
+        .bind(passwordHash, existingAdmin.id, LEGACY_DEFAULT_ADMIN_HASH)
+        .run();
+      user = await DB.prepare(
+        `SELECT id, username, password_hash, role FROM users
+         WHERE id = ? AND status = 'active' AND deleted_at IS NULL LIMIT 1`,
+      )
+        .bind(existingAdmin.id)
+        .first<AdminUser>();
     }
   }
 

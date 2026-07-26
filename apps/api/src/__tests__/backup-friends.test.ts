@@ -37,7 +37,7 @@ describe("友链简化流程", () => {
     });
     expect(create.status).toBe(200);
     const created = (await create.json()) as any;
-    expect(created.data.deployment.status).toBe("not_configured");
+    expect(created.data.publication.status).toBe("live");
 
     const publicList = await apiFetch("/api/v1/friends");
     const result = (await publicList.json()) as any;
@@ -116,7 +116,7 @@ describe("网站数据备份", () => {
     });
     expect(response.status).toBe(200);
     const result = (await response.json()) as any;
-    expect(result.data.deployment.status).toBe("not_configured");
+    expect(result.data.publication.status).toBe("live");
 
     const posts = await apiFetch("/api/v1/posts");
     const postList = (await posts.json()) as any;

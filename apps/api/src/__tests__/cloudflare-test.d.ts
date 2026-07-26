@@ -4,7 +4,6 @@ declare module "cloudflare:test" {
     DB: D1Database;
     JWT_SECRET: string;
     SITE_NAME: string;
-    CORS_ORIGIN: string;
   };
 }
 
@@ -13,6 +12,5 @@ declare module "cloudflare:workers" {
     DB: D1Database;
     JWT_SECRET: string;
     SITE_NAME: string;
-    CORS_ORIGIN: string;
   };
 }

@@ -29,48 +29,7 @@ describe("GET / — 健康检查", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as any;
     expect(json.status).toBe("ok");
-    expect(json.service).toBe("nami-blog-api");
-  });
-
-  it("本地开发应自动允许默认 Web 地址跨域访问", async () => {
-    const req = createRequest("/healthz", {
-      headers: { Origin: "http://localhost:4322" },
-    });
-    const res = await app.fetch(req, {
-      ...env,
-      CORS_ORIGIN: "https://nami-blog.pages.dev",
-    } as any);
-
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://localhost:4322",
-    );
-    expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
-  });
-
-  it("Astro 自动切换端口后仍应允许本地跨域访问", async () => {
-    const req = createRequest("/healthz", {
-      headers: { Origin: "http://localhost:4323" },
-    });
-    const res = await app.fetch(req, {
-      ...env,
-      CORS_ORIGIN: "https://nami-blog.pages.dev",
-    } as any);
-
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://localhost:4323",
-    );
-  });
-
-  it("本地开发不应允许未配置的第三方来源", async () => {
-    const req = createRequest("/healthz", {
-      headers: { Origin: "https://evil.example" },
-    });
-    const res = await app.fetch(req, {
-      ...env,
-      CORS_ORIGIN: "https://nami-blog.pages.dev",
-    } as any);
-
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect(json.service).toBe("nami-blog");
   });
 });
 
@@ -246,6 +205,8 @@ describe("GET /api/v1/settings — 公开站点设置", () => {
     expect(json.data).toBeDefined();
     expect(json.data.site_name).toBe("Nami Blog");
     expect(json.data.site_description).toBe("测试站点描述");
+    expect(json.data.comment_enabled).toBe(true);
+    expect(json.data.site_theme).toBe("sakura");
     expect(json.data.social_links).toEqual({
       github: "https://github.com/test-user",
     });
@@ -255,7 +216,7 @@ describe("GET /api/v1/settings — 公开站点设置", () => {
     const res = await apiFetch("/api/v1/settings");
     const json = (await res.json()) as any;
     // 不在 publicKeys 中的 key 不应被返回
-    expect(json.data.comment_enabled).toBeUndefined();
+    expect(json.data.comment_auto_approve).toBeUndefined();
     expect(json.data.sensitive_words).toBeUndefined();
   });
 });

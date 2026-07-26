@@ -39,9 +39,9 @@ describe("管理端文章写作流程", () => {
     });
     expect(create.status).toBe(200);
     const created = (await create.json()) as {
-      data: { id: number; deployment: { status: string } };
+      data: { id: number; publication: { status: string } };
     };
-    expect(created.data.deployment.status).toBe("not_needed");
+    expect(created.data.publication.status).toBe("not_needed");
 
     const update = await apiFetch(`/api/admin/posts/${created.data.id}`, {
       method: "PUT",
@@ -108,9 +108,9 @@ describe("管理端文章写作流程", () => {
 
     expect(response.status).toBe(200);
     const result = (await response.json()) as {
-      data: { deployment: { status: string } };
+      data: { publication: { status: string } };
     };
-    expect(result.data.deployment.status).toBe("not_configured");
+    expect(result.data.publication.status).toBe("live");
   });
 
   it("仪表盘应返回真实总浏览量和分类标签数量", async () => {

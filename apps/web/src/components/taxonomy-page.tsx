@@ -1,0 +1,6 @@
+import Link from "next/link";
+import type { PostSummary } from "@/lib/types";
+
+export function TaxonomyPage({ icon, kind, name, posts }: { icon: string; kind: string; name: string; posts: PostSummary[] }) {
+  return <section className="mx-auto max-w-3xl px-4 py-12"><Link href="/blog" className="text-sm text-[var(--color-primary)] hover:underline">← 返回文章</Link><h1 className="mt-6 text-3xl font-bold">{icon} {kind}：{name}</h1><p className="mt-1 text-sm text-[var(--color-text-secondary)]">共 {posts.length} 篇文章</p>{posts.length ? <div className="mt-6 space-y-4">{posts.map((post) => <Link key={post.id} href={`/blog/${post.slug}`} className="group block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 hover:border-[var(--color-primary)]"><h2 className="text-lg font-semibold group-hover:text-[var(--color-primary)]">{post.title}</h2>{post.excerpt && <p className="mt-1 line-clamp-2 text-sm text-[var(--color-text-secondary)]">{post.excerpt}</p>}<time className="mt-2 block text-xs text-[var(--color-text-tertiary)]">{new Date(post.published_at || post.created_at).toLocaleDateString("zh-CN")}</time></Link>)}</div> : <div className="mt-8 rounded-xl border border-[var(--color-border)] py-12 text-center text-[var(--color-text-secondary)]">这里暂时还没有文章</div>}</section>;
+}

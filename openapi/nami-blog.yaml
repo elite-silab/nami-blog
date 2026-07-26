@@ -1,15 +1,15 @@
 openapi: "3.1.0"
 info:
   title: Nami Blog API
-  version: "1.4.0"
+  version: "2.0.0"
   description: |
     Nami 娜美 CF 博客 API。
-    公开读接口运行在 Cloudflare Workers + D1，前台由 Cloudflare Pages 的 Astro SSG 构建。
+    Next.js 前台、管理后台与 Hono API 同源运行在一个 Cloudflare Worker，数据存储于 D1。
 servers:
-  - url: http://localhost:8788
-    description: 本地 Workers 开发服务
-  - url: https://api.example.com
-    description: 生产 Workers API（替换为实际域名）
+  - url: http://localhost:4322
+    description: 本地 Next.js + Hono 单 Worker 开发服务
+  - url: https://nami-blog.codeelite.workers.dev
+    description: Nami Blog 生产服务
 
 tags:
   - name: Health
@@ -264,7 +264,7 @@ paths:
             schema: { $ref: "#/components/schemas/SiteBackup" }
       responses:
         "200":
-          description: 导入成功并返回 Pages 更新状态
+          description: 导入成功，公开内容实时生效
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":

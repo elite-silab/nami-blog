@@ -1,179 +1,209 @@
-# Cloudflare 部署指南（零域名 · 纯网页操作）
+# Cloudflare 部署指南
 
-这份指南面向第一次使用 Cloudflare 的用户。部署过程通过 GitHub 和 Cloudflare Dashboard 完成，不要求安装 Wrangler，也不要求在终端生成密钥或初始化管理员。
+本文面向第一次使用 Cloudflare 的用户。Nami Blog 只需要：
 
-部署后会得到两个免费地址：
+- 一个 GitHub 仓库
+- 一个 Cloudflare D1 数据库
+- 一个 Cloudflare Worker
 
-| 服务 | 地址示例 |
-| ---- | -------- |
-| API | `https://nami-blog-api.<账号子域>.workers.dev` |
-| 前端 | `https://nami-blog.pages.dev` |
+不需要购买服务器，不需要创建 Pages，也不需要配置跨域或 Deploy Hook。
 
-> 地址以 Cloudflare 部署完成页面实际显示的值为准。Pages 默认地址是“项目名 + `.pages.dev`”，不要自行拼接 GitHub 或 Cloudflare 用户名。
+官方实例地址：`https://nami-blog.codeelite.workers.dev`
 
-## 准备工作
+## 部署前准备
 
-1. 注册 [GitHub](https://github.com/) 和 [Cloudflare](https://dash.cloudflare.com/sign-up) 免费账号。
-2. 在 GitHub 打开本项目，点击右上角 **Fork → Create fork**。
-3. 后续编辑配置时都在自己的 Fork 中操作，不要把任何真实 Secret 写入仓库。
+1. 登录 GitHub，Fork [elite-silab/nami-blog](https://github.com/elite-silab/nami-blog)。
+2. 登录 Cloudflare Dashboard。
+3. 确认仓库根目录存在 `wrangler.jsonc`。
+
+所有可以公开的 Cloudflare 配置集中在根目录 `wrangler.jsonc`。生产密码和 JWT 密钥稍后填写在 Cloudflare 控制台，不会出现在 GitHub。
 
 ## 第一步：创建 D1 数据库
 
-1. 打开 Cloudflare Dashboard。
-2. 进入 **Storage & Databases → D1 → Create database**。
-3. 数据库名称填写 `nami-blog`。
-4. 创建完成后复制 **Database ID**。
+1. 在 Cloudflare 左侧打开 **Storage & databases**。
+2. 进入 **D1 SQL database**。
+3. 点击 **Create**。
+4. 数据库名称填写 `nami-blog`。
+5. 创建完成后复制 **Database ID**。
 
-## 第二步：填写数据库配置
+Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密码。
 
-在 GitHub 打开 `apps/api/wrangler.toml`，点击铅笔按钮编辑：
+## 第二步：编辑公开配置
 
-```toml
-database_id = "粘贴你的 Database ID"
+回到自己的 GitHub 仓库，打开根目录 `wrangler.jsonc`，点击铅笔按钮编辑。
+
+需要确认三处：
+
+```json
+{
+  "name": "nami-blog",
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://nami-blog.codeelite.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "database_id": "你的-D1-Database-ID"
+    }
+  ]
+}
 ```
 
-此时还不知道最终的前端地址，`CORS_ORIGIN` 先不用改，第六步再回填。点击 **Commit changes** 保存。
+- `name`：你想使用的 Worker 名称。
+- `database_id`：替换为第一步复制的值。
+- `NEXT_PUBLIC_SITE_URL`：官方仓库已经填好官方地址；Fork 用户第一次部署后再换成自己的实际地址。
 
-## 第三步：连接并部署 Workers API
+不要向文件中添加 `ADMIN_INITIAL_PASSWORD`、`JWT_SECRET` 或 `JWT_REFRESH_SECRET`。
 
-1. Cloudflare Dashboard 进入 **Workers & Pages → Create → Import from Git**。
-2. 授权 GitHub，并选择刚才 Fork 的仓库。
-3. 填写以下构建配置：
+## 第三步：连接 GitHub 仓库
 
-| 配置项 | 值 |
-| ------ | -- |
-| Project name | `nami-blog-api` |
-| Build command | `pnpm --filter @nami/api build` |
-| Deploy command | `pnpm --filter @nami/api deploy:full` |
-| Node version | `22` |
+1. 打开 **Workers & Pages**。
+2. 点击 **Create**。
+3. 选择导入 Git 仓库的入口，例如 **Import a repository**。
+4. 授权 GitHub，并选择自己的 `nami-blog` 仓库。
+5. 选择生产分支 `main`。
 
-点击 **Save and Deploy**。`deploy:full` 会先应用远程 D1 migration，再部署 Worker。成功后复制 Cloudflare 显示的完整 Worker 地址。
+填写构建设置：
 
-## 第四步：设置 Workers Secrets
+| 设置 | 值 |
+| --- | --- |
+| Root directory | 留空 |
+| Build command | `pnpm build:worker` |
+| Deploy command | `pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc` |
 
-进入 `nami-blog-api` 的 **Settings → Variables and Secrets**，添加：
+项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
 
-| 类型 | 名称 | 填写内容 |
-| ---- | ---- | -------- |
-| Secret | `JWT_SECRET` | 密码管理器生成的随机长字符串 |
-| Secret | `JWT_REFRESH_SECRET` | 另一个不同的随机长字符串 |
-| Secret | `ADMIN_INITIAL_PASSWORD` | 自己设置的一次性管理员密码，至少 12 个字符 |
+### 找不到 Build output directory 正常吗？
 
-注意：
+正常。Nami 现在部署为 Worker，不是 Pages 静态站点，因此不填写 `apps/web/dist`，也不需要 Build output directory。OpenNext 会自动生成 Worker 和静态资源产物。
 
-- 三个值不能相同，也不要写进 GitHub、聊天或截图。
-- 生产环境不能使用本地模板密码 `nami-local-admin`。
-- 保存后在 Deployments 页面重新部署一次，让 Secrets 生效。
+## 第四步：添加生产 Secret
 
-## 第五步：连接并部署 Pages 前端
+第一次构建后，进入刚创建的 Worker：
 
-1. Cloudflare Dashboard 进入 **Workers & Pages → Create → Pages → Connect to Git**。
-2. 选择同一个 GitHub 仓库。
-3. 填写：
+**Settings → Variables and Secrets → Add**
 
-| 配置项 | 值 |
-| ------ | -- |
-| Project name | `nami-blog` |
-| Build command | `pnpm --filter @nami/web build` |
-| Build output directory | `apps/web/dist` |
+依次新增并选择 Secret 类型：
 
-> 如果你只看到 **Deploy command**，没有 **Build output directory**，说明当前是 Workers 导入 Git 页面。返回创建入口，选择 **Pages → Connect to Git**。如果看到上传文件区域，则进入了 Direct Upload，也需要返回选择 Git 集成。
+| Secret | 建议 |
+| --- | --- |
+| `ADMIN_INITIAL_PASSWORD` | 你自己的强密码，至少 12 位 |
+| `JWT_SECRET` | 随机长字符串 |
+| `JWT_REFRESH_SECRET` | 与 JWT_SECRET 不同的随机长字符串 |
 
-首次部署只添加一个 Pages 环境变量：
+保存后重新部署一次。不要把这些值写入 `wrangler.jsonc`、`.env.example`、GitHub Issue 或截图。
 
-| 名称 | 值 |
-| ---- | -- |
-| `PUBLIC_API_URL` | 第三步复制的完整 Worker 地址 |
+## 第五步：确认实际网址
 
-此时还没有最终 Pages 地址，`SITE_URL` 先留空。Pages 中也不要填写 JWT 或管理员密码。点击 **Save and Deploy**，完成后复制 Cloudflare 实际显示的 Pages 地址。
+部署完成后，Cloudflare 会显示实际的 `workers.dev` 地址。不要凭用户名猜测地址，直接复制页面显示的完整 URL。
 
-## 第六步：回填正式前端地址
+官方项目使用：
 
-第一次部署成功后，先确定访客以后真正使用的前端地址：
+```text
+https://nami-blog.codeelite.workers.dev
+```
 
-- 使用 Cloudflare 免费域名：复制 Cloudflare 实际显示的 Pages 地址，例如 `https://nami-blog.pages.dev`。
-- 已绑定自己的前端域名：使用实际对外访问的正式域名，例如 `https://blog.example.com`，不再使用 `.pages.dev` 地址。
+Fork 用户需要回 GitHub 编辑 `wrangler.jsonc`，把 `NEXT_PUBLIC_SITE_URL` 改为刚复制的地址，再提交一次。Cloudflare 会自动重新部署。
 
-选好后必须完成：
+这个变量是公开配置，不是 Secret。它用于：
 
-1. 在 Pages **Settings → Environment variables** 新增 `SITE_URL`，填写上面确定的完整前端地址，然后重新部署 Pages。
-2. 在 GitHub 编辑 `apps/api/wrangler.toml`，将 `CORS_ORIGIN` 改成同一个前端地址并提交。
-3. Workers Git 集成自动重新部署后，再开始登录测试。
+- SEO canonical 地址
+- Open Graph 分享链接
+- `/sitemap.xml`
+- `/rss.xml`
+- `/robots.txt`
 
-使用默认域名时，两处都填 `https://你的项目.pages.dev`；使用自定义域名时，两处都填 `https://blog.example.com`。地址不要带 `/admin` 等页面路径，也不要在末尾加 `/`。
+## 第六步：第一次登录
 
-`SITE_URL` 用于生成 SEO 标准链接、Sitemap、RSS 和分享链接；`CORS_ORIGIN` 用于允许该前端访问 API。第一次 Pages 部署只是为了获得真实地址；第二次部署才会使正式的 `SITE_URL` 生效。
+打开：
 
-## 第七步：开启后台内容自动更新
+```text
+你的站点地址/admin/login
+```
 
-Pages 已经部署完成，现在创建一个专门用于内容更新的 Deploy Hook：
+例如：
 
-1. 进入 Pages 项目的 **Settings → Builds & deployments → Deploy hooks**。
-2. 点击 **Add deploy hook**。
-3. 名称填写 `Nami Publish`，分支选择 `main`，然后创建。
-4. 复制 Cloudflare 生成的完整 Hook URL。
-5. 进入 `nami-blog-api` Worker 的 **Settings → Variables and Secrets**。
-6. 点击新增变量，类型选择 **Secret**，名称填写 `PAGES_DEPLOY_HOOK_URL`，值粘贴 Hook URL。
-7. 保存后重新部署一次 Worker，让 Secret 生效。
-
-不要把 Hook URL 写入 GitHub、Pages 环境变量、`.env.example` 或截图。它相当于一个只用于触发 Pages 构建的密码。
-
-配置成功后，以下操作会自动重建前台：发布、修改、取消公开或删除公开文章；修改分类、标签或友链；保存站点设置；导入网站数据备份。后台会显示“前台正在自动更新”，一般等待 1–2 分钟即可。草稿、非公开文章和评论不会触发重建。
-
-## 第八步：首次登录管理员
-
-打开“实际 Pages 地址 + `/admin/login`”：
+```text
+https://nami-blog.codeelite.workers.dev/admin/login
+```
 
 - 用户名：`admin`
 - 密码：第四步设置的 `ADMIN_INITIAL_PASSWORD`
 
-该密码只在数据库没有管理员时用于首次创建，系统会用 bcrypt cost 12 保存哈希，不会保存明文。成功登录后立即：
+如果 D1 还是空数据库，第一次成功登录会自动创建管理员。登录后进入 **站点设置 → 修改密码**，可以换成新的密码。
 
-1. 进入 **后台设置 → 安全设置** 修改密码。
-2. 回到 Workers **Variables and Secrets** 删除 `ADMIN_INITIAL_PASSWORD`。
+## 第七步：发布测试文章
 
-删除或修改这个 Secret 不会重置已经创建的管理员。
+1. 进入 **文章管理 → 新建文章**。
+2. 填写标题和正文。
+3. 保持“公开”勾选。
+4. 点击“发布文章”。
+5. 返回前台，文章应立即出现。
 
-## 第九步：验证自动更新
+这里不需要点击重新部署。文章、分类、标签、友链、主题和站点设置都保存在 D1，保存后直接由 Next.js 动态读取。
 
-1. 打开 Pages 地址，确认首页正常。
-2. 登录后台，发布一篇公开文章。
-3. 确认后台出现“前台正在自动更新”的提示。
-4. 等待 Pages 完成部署，再打开 `/blog/`，确认文章已经显示。
-5. 在 GitHub 提交一次文档修改，确认 Workers/Pages 的 Git 集成也能自动触发部署。
+## 绑定自己的域名
 
-仓库内的 GitHub Actions 负责 Lint、类型检查、测试和构建验证；实际发布由 Cloudflare 的 Git 集成完成，不需要配置 GitHub API Token。
+1. 进入 Worker 的 **Settings → Domains & Routes**。
+2. 点击 **Add → Custom Domain**。
+3. 选择或输入域名，例如 `blog.example.com`。
+4. 回 GitHub 将 `NEXT_PUBLIC_SITE_URL` 改为 `https://blog.example.com`。
+5. 提交并等待一次部署。
+
+地址不要带 `/admin`、`/blog` 等路径，末尾不要添加 `/`。
+
+以后发布文章或修改后台站点设置仍然不需要部署；只有更换正式域名、修改代码或 Worker 绑定时才需要部署。
+
+## 更新项目
+
+自己修改代码后，推送到 `main`，Cloudflare Git 集成会自动构建并部署。
+
+部署命令会先执行尚未应用的 D1 migrations，再上传 Worker。已执行过的迁移不会重复破坏数据。重要升级前仍建议在后台先导出备份。
 
 ## 常见问题
 
-### Pages 提示 `Failed building Pages Functions`
+### 登录提示“服务暂时不可用”
 
-请先确认使用了仓库最新版本，且根目录不存在旧的 `functions/` 目录。Nami 的 API 由 `apps/api` 中的独立 Worker 提供，Pages 只负责部署 `apps/web/dist` 静态前端，不需要 Pages Functions。
+依次检查：
 
-### 登录提示凭据错误
+1. `wrangler.jsonc` 的 `database_id` 是否属于当前 Cloudflare 账号；
+2. 部署日志中 `pnpm db:migrate:prod` 是否成功；
+3. 三个 Secret 是否存在且名称完全正确；
+4. 打开 `/api/v1/healthz` 是否返回 `{"status":"ok","service":"nami-blog"}`。
 
-确认 `ADMIN_INITIAL_PASSWORD` 是 Workers 的 **Secret**、长度至少 12 个字符，并且没有使用 `nami-local-admin`。如果数据库已经存在管理员，Secret 不会覆盖旧密码。
+健康检查成功但登录仍失败时，查看 Worker Logs 中第一条实际异常，不要公开日志里的 Cookie 或 Token。
 
-### 页面能打开但 API 请求失败
+### 发布后前台没有文章
 
-核对三处地址是否完全一致：浏览器实际访问的前端地址、`wrangler.toml` 的 `CORS_ORIGIN`、Pages 的 `SITE_URL`。地址末尾不要额外添加路径或 `/`。
+检查文章是否同时满足：
 
-### 后台有文章，但前台看不到
+- 状态是“已发布”
+- 已勾选“公开”
 
-先确认文章状态是“已发布”且“公开”开关已打开。再查看后台保存后的提示：
+现在是动态单 Worker 架构，不需要重新部署或等待静态构建。
 
-- “前台正在自动更新”：等待 Pages 构建完成，通常需要 1–2 分钟。
-- “尚未配置自动更新”：按第七步设置 `PAGES_DEPLOY_HOOK_URL`。
-- “自动更新前台失败”：重新复制 Deploy Hook URL，并确认它作为 Worker 的 Secret 保存。
+### RSS 显示 XML 错误
 
-如果 Cloudflare 显示部署成功但 `/blog/` 仍为空，请确认仓库已更新到包含文章列表修复的最新版本，然后重新部署 Pages。
+确认使用仓库最新版本，然后访问 `/rss.xml`。当前实现已经声明 `content:encoded` 命名空间，并对正文使用 CDATA 编码。
 
-### Pages 项目名被占用
+### Worker 名称被占用
 
-使用 Cloudflare 分配或你重新选择的项目名。如果使用默认域名，把实际 `.pages.dev` 地址回填到 `CORS_ORIGIN` 和 `SITE_URL`；如果已绑定自定义域名，两处均填自定义域名。
+修改 `wrangler.jsonc` 的 `name`，部署后复制 Cloudflare 实际地址，再同步修改 `NEXT_PUBLIC_SITE_URL`。
 
-### 想使用自己的域名
+### 使用自定义域名后分享地址仍是旧地址
 
-在 Pages 的 **Custom domains** 绑定前端域名后，将 Pages 的 `SITE_URL` 和 `apps/api/wrangler.toml` 的 `CORS_ORIGIN` 一起改为该正式域名，然后分别重新部署 Pages 和 Worker。
+`NEXT_PUBLIC_SITE_URL` 属于构建期公开变量。修改 `wrangler.jsonc` 并部署一次；之后普通内容更新不需要部署。
 
-如果 Workers API 也绑定了自己的 API 域名，例如 `https://api.example.com`，还要将 Pages 的 `PUBLIC_API_URL` 改为该地址并重新部署 Pages。
+### 可以删除旧 Pages 项目吗？
+
+确认新 Worker 的首页、后台登录、文章、RSS 和 Sitemap 都正常后，可以在 Cloudflare Dashboard 删除旧 Pages 项目和旧的独立 API Worker。删除前先确认它们没有仍在使用的自定义域名。
+
+## 部署验收清单
+
+- [ ] 只有一个生产 Worker
+- [ ] D1 绑定名称为 `DB`
+- [ ] 三个 Secret 已设置
+- [ ] 首页和 `/api/v1/healthz` 可访问
+- [ ] `/admin/login` 可以登录
+- [ ] 发布文章后前台立即可见
+- [ ] `/rss.xml` 与 `/sitemap.xml` 可打开
+- [ ] `NEXT_PUBLIC_SITE_URL` 等于访客实际使用的正式域名

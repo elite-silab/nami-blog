@@ -4,6 +4,8 @@ import app from "../index";
 
 const LOCAL_PASSWORD = "nami-local-admin";
 const PRODUCTION_PASSWORD = "production-only-admin-password";
+const LEGACY_DEFAULT_ADMIN_HASH =
+  "$2b$10$nyhhqa07kaOJOHNGeEQxIu6cxauFp608ZqJwQuxO7mFEMZH/ICWhu";
 
 async function login(
   url: string,
@@ -134,6 +136,36 @@ describe("管理员首次登录初始化", () => {
 
     const resetAttempt = await login(
       "https://api.example.com/api/v1/auth/login",
+      "another-production-password",
+      "another-production-password",
+    );
+    expect(resetAttempt.status).toBe(401);
+  });
+
+  it("可用当前初始 Secret 安全接管被迁移禁用的旧默认管理员", async () => {
+    const DB = (env as any).DB as D1Database;
+    await DB.prepare(
+      `INSERT INTO users (username, email, password_hash, role, status)
+       VALUES ('admin', 'legacy@nami.invalid', ?, 'admin', 'disabled')`,
+    )
+      .bind(LEGACY_DEFAULT_ADMIN_HASH)
+      .run();
+
+    const response = await login(
+      "https://blog.example.com/api/v1/auth/login",
+      PRODUCTION_PASSWORD,
+      PRODUCTION_PASSWORD,
+    );
+    expect(response.status).toBe(200);
+
+    const admin = await DB.prepare(
+      "SELECT password_hash, status FROM users WHERE username = 'admin'",
+    ).first<{ password_hash: string; status: string }>();
+    expect(admin?.status).toBe("active");
+    expect(admin?.password_hash).not.toBe(LEGACY_DEFAULT_ADMIN_HASH);
+
+    const resetAttempt = await login(
+      "https://blog.example.com/api/v1/auth/login",
       "another-production-password",
       "another-production-password",
     );

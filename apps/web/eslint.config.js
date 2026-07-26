@@ -1,33 +1,15 @@
-import { defineConfig } from "eslint/config";
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 export default defineConfig([
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  {
-    languageOptions: {
-      parserOptions: {
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-  {
-    ignores: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/.wrangler/**",
-      "**/.turbo/**",
-      "**/.astro/**",
-    ],
-  },
+  ...nextVitals,
+  ...nextTypescript,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
-      "@typescript-eslint/consistent-type-imports": "error",
+      "@next/next/no-img-element": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
+  globalIgnores([".next/**", ".open-next/**", "next-env.d.ts"]),
 ]);

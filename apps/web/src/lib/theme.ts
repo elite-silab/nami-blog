@@ -96,6 +96,10 @@ export const THEMES: ThemeMeta[] = [
 
 export const DEFAULT_THEME: ThemeId = "sakura";
 
+export function isThemeId(value: unknown): value is ThemeId {
+  return value === "sakura" || value === "ocean" || value === "starry";
+}
+
 /**
  * 浏览器端初始化脚本（内联在 <head> 中执行，避免闪烁）
  * 同时处理主题 + Dark 模式

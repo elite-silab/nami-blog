@@ -5,12 +5,11 @@ export default defineConfig({
   test: {
     globals: true,
     pool: cloudflarePool({
-      wrangler: { configPath: "./wrangler.toml" },
+      wrangler: { configPath: "../../wrangler.jsonc" },
       miniflare: {
         bindings: {
           JWT_SECRET: "test-secret-key-for-testing-only",
           SITE_NAME: "Test Blog",
-          CORS_ORIGIN: "http://localhost:4322",
         },
       },
     }),
