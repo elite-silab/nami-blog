@@ -87,7 +87,7 @@ pnpm deploy         # 迁移远程 D1 并部署
 
 `database_id`、Worker 名称和公开网址都不是密码，可以提交到公开仓库。JWT 密钥和管理员密码绝不能写在这个文件中。
 
-`kv_namespaces` 中只保留 `"binding": "CACHE"` 即可。Wrangler 会按 Worker 名称自动配置缓存空间，新手不需要到 KV 页面手动创建。
+`kv_namespaces` 中只保留名为 `CACHE` 的绑定即可。Wrangler 会按 Worker 名称自动配置缓存空间，新手不需要到 KV 页面手动创建。
 
 ### 2. 从 Git 连接一个 Worker
 
@@ -146,7 +146,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 - 网站名称、SEO、主题和评论开关：保存成功后自动清理公开缓存
 - 修改 `NEXT_PUBLIC_SITE_URL`、代码或 Worker 绑定：需要重新部署
 
-文章和站点设置始终以 D1 为准，不需要为了内容变化重新构建网站。KV 在全球采用最终一致同步，通常会立即更新；极少数地区可能短时间读到旧缓存，TTL 到期后会自动恢复。
+文章和站点设置始终以 D1 为准，不需要为了内容变化重新构建网站。KV 在全球采用最终一致同步，通常会立即更新；极少数地区可能短时间读到旧缓存，最迟会在缓存到期后恢复。
 
 ## 自定义域名
 

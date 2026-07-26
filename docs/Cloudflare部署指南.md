@@ -9,7 +9,7 @@
 
 不需要购买服务器，不需要创建 Pages，也不需要配置跨域或 Deploy Hook。
 
-KV 不需要手动创建，也不需要复制 Namespace ID。根目录 `wrangler.jsonc` 只声明 `CACHE` binding，第一次部署时 Wrangler 会自动配置。
+KV 不需要手动创建，也不需要复制空间 ID。根目录 `wrangler.jsonc` 只声明名为 `CACHE` 的绑定，第一次部署时 Wrangler 会自动配置。
 
 官方实例地址：`https://nami-blog.codeelite.workers.dev`
 
@@ -57,7 +57,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 - `name`：你想使用的 Worker 名称。
 - `database_id`：替换为第一步复制的值。
 - `NEXT_PUBLIC_SITE_URL`：官方仓库已经填好官方地址；Fork 用户第一次部署后再换成自己的实际地址。
-- `CACHE`：公开读缓存，只保留 binding 名称，不填写 ID。
+- `CACHE`：公开内容缓存，保持现有写法，不填写 ID。
 
 不要向文件中添加 `ADMIN_INITIAL_PASSWORD`、`JWT_SECRET` 或 `JWT_REFRESH_SECRET`。
 
@@ -79,7 +79,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
 
-部署日志首次出现 KV provisioning 属于正常现象。它会为当前 Worker 配置缓存空间，不会保存密码、草稿、评论隐私或网站备份。
+第一次部署时，日志可能会显示 Wrangler 正在自动配置 KV，这是正常现象。它只会为当前 Worker 准备缓存空间，不会保存密码、草稿、评论隐私或网站备份。
 
 ### 找不到 Build output directory 正常吗？
 
@@ -188,7 +188,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 - 状态是“已发布”
 - 已勾选“公开”
 
-现在是动态单 Worker 架构，不需要重新部署或等待静态构建。浏览器开发者工具中查看公开 API 的 `X-Nami-Cache`：`MISS` 表示刚从 D1 读取，`HIT` 表示来自 KV，`BYPASS` 表示该请求不使用缓存。KV 全球同步有短暂延迟，刷新后仍异常时再检查 Worker Logs。
+现在是动态单 Worker 架构，不需要重新部署或等待静态构建。如果需要进一步排查，可在浏览器开发者工具中查看公开 API 的 `X-Nami-Cache`：`HIT` 表示本次来自 KV，`MISS` 表示本次从 D1 读取，`BYPASS` 表示该请求不使用 KV。KV 全球同步可能有短暂延迟，刷新后仍异常时再检查 Worker 日志。
 
 ### RSS 显示 XML 错误
 

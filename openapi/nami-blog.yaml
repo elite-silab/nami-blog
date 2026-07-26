@@ -375,7 +375,7 @@ paths:
 components:
   headers:
     PublicCache:
-      description: KV 公开读缓存状态；搜索或未启用 KV 时为 BYPASS。
+      description: KV 公开缓存状态：HIT 表示来自 KV，MISS 表示从 D1 读取，BYPASS 表示未使用 KV。
       schema:
         type: string
         enum: [HIT, MISS, BYPASS]

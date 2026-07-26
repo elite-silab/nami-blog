@@ -1,57 +1,33 @@
-# Reading Statistics Implementation Plan
+# 阅读统计实现记录
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> 这是 Next.js 单 Worker 迁移前的历史记录。文中的 Astro 和 Pages 已不再用于当前项目。
 
-**Goal:** Replace misleading dashboard placeholders with lightweight real reading statistics and taxonomy counts.
+## 目标
 
-**Architecture:** A dedicated public POST endpoint increments D1 only for published public posts. The static article page calls it at runtime and uses session-scoped client deduplication; the authenticated dashboard aggregates D1 counters and taxonomy rows.
+后台不再展示无法验证的占位数字。文章被访客打开时记录一次轻量阅读，仪表盘展示 D1 中的真实汇总数据。
 
-**Tech Stack:** Cloudflare Workers, Hono, D1, Astro SSG, TypeScript, Vitest
+## 实现内容
 
----
+### 阅读上报
 
-### Task 1: Correct the view-count API semantics
+- 查看文章详情只读取数据，不再自动增加阅读量。
+- 文章页加载成功后，单独请求阅读上报接口。
+- 只有已发布且公开的文章可以增加阅读量。
+- 同一浏览器标签页不会因重复刷新而反复上报。
+- 统计失败不影响正常阅读。
 
-**Files:**
-- Modify: `apps/api/src/routes/public.ts`
-- Test: `apps/api/src/__tests__/public-routes.test.ts`
+### 后台仪表盘
 
-1. Add failing tests proving GET does not mutate and POST increments only a published public article.
-2. Run the public route test and confirm the new expectations fail.
-3. Remove the GET-side increment and implement `POST /api/v1/posts/:slug/view` with a no-store response.
-4. Run the public route test and confirm it passes.
+- “总浏览量”来自公开文章阅读量的 D1 汇总。
+- 无法准确计算的“存储用量”被移除。
+- 原占位位置改为真实的分类和标签数量。
 
-### Task 2: Add session-scoped browser tracking
+## 说明
 
-**Files:**
-- Create: `apps/web/src/lib/view-tracker.ts`
-- Create: `apps/web/src/lib/view-tracker.test.ts`
-- Modify: `apps/web/src/pages/blog/[slug].astro`
+这里的数字是轻量页面阅读次数，不等于独立访客数，也不用作严格防刷。需要更完整的访客分析时，应使用 Cloudflare Web Analytics。
 
-1. Add tests for first-view POST, same-session deduplication, safe failure, and Slug encoding.
-2. Implement a small dependency-injected tracking helper.
-3. Mark the visible counter with article and API data attributes, call the helper after page load, and update the number on success.
-4. Run Web tests and type checking.
+## 验证结果
 
-### Task 3: Replace dashboard placeholders
-
-**Files:**
-- Modify: `apps/api/src/routes/admin.ts`
-- Modify: `apps/api/src/__tests__/admin-posts.test.ts`
-- Modify: `apps/web/src/pages/admin/index.astro`
-
-1. Add an authenticated dashboard test for total views and taxonomy counts.
-2. Aggregate public post views, undeleted categories, and undeleted tags in the dashboard query.
-3. Render “总浏览量” and “分类与标签” using API data, with safe zero fallbacks.
-4. Run API integration tests.
-
-### Task 4: Synchronize documentation and verify
-
-**Files:**
-- Modify: `docs/管理后台功能与设计文档.md`
-- Modify: `docs/前端功能与交互设计文档.md`
-- Modify: `docs/变更记录.md`
-
-1. Document the lightweight view definition and taxonomy card.
-2. Run `git diff --check`, `pnpm check`, `pnpm test`, and `pnpm build`.
-3. Inspect the generated article page for the runtime tracking hook and review the staged diff before commit.
+- 文章详情查询不会改写数据。
+- 草稿、非公开和不存在的文章不能增加阅读量。
+- 后台显示真实总阅读量、分类数和标签数。

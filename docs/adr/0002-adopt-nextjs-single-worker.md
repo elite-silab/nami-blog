@@ -18,7 +18,7 @@ Nami Blog 面向个人站长和开源使用者。原项目使用 Astro SSG 托�
 - Client Components 负责管理后台、评论、搜索、阅读统计和主题交互。
 - Next.js Catch-all Route Handler 将 `/api/*` 请求交给现有 Hono 应用。
 - Hono 继续负责认证、公开 API、管理 API和 D1 数据访问。
-- 静态资源由同一个 Worker 的 Assets binding 提供。
+- 静态资源由同一个 Worker 的 Assets 绑定提供。
 - 页面在服务端直接调用 Hono，不对 Worker 自身发起网络请求。
 - 浏览器统一使用同源 `/api/*`，删除 CORS、`PUBLIC_API_URL` 和 Pages Deploy Hook。
 - Canonical、RSS、Sitemap 和分享链接以 `https://nami-blog.codeelite.workers.dev` 为默认生产地址；绑定自定义域名后只需修改公开变量 `NEXT_PUBLIC_SITE_URL`。
@@ -27,7 +27,7 @@ Nami Blog 面向个人站长和开源使用者。原项目使用 Astro SSG 托�
 
 ### 正面影响
 
-- Cloudflare 只需维护一个 Worker、一个 D1 binding、一个自动配置的 KV 缓存和一组 Secrets。
+- Cloudflare 只需维护一个 Worker、一个 D1 绑定、一个自动配置的 KV 缓存和一组密钥。
 - 文章及站点设置写入成功后立即可见，不需要重新部署。
 - Next.js 的社区、组件生态和开发者认知更广，有利于开源贡献。
 - 保留 Hono 业务层可降低迁移风险，也便于 API 独立测试。

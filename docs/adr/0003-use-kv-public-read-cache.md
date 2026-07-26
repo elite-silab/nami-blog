@@ -12,11 +12,11 @@ Nami Blog 已使用 Next.js、Hono 和 D1 运行在单个 Cloudflare Worker。�
 
 ## 决策
 
-在同一个 Worker 中增加名为 `CACHE` 的 Workers KV binding，作为可删除、可重建、可降级的公开读缓存。
+在同一个 Worker 中增加名为 `CACHE` 的 Workers KV 绑定，它只是可以删除和重建的公开内容副本。
 
 - D1 是文章、分类、标签、友链和站点设置的唯一真数据源。
 - KV 仅保存已发布、公开且不含访客隐私的数据。
-- 非搜索文章列表、文章详情、分类、标签、友链和公开设置使用 cache-aside。
+- 文章列表、文章详情、分类、标签、友链和公开设置会先读取 KV，未命中时再读取 D1；搜索始终直接读取 D1。
 - 搜索、草稿、后台、认证、评论隐私、浏览量写入和网站备份不进入 KV。
 - 后台响应声明 `publication.status = live` 时，统一清除版本化公开缓存前缀。
 - KV 缺失或操作失败时直接读取 D1；缓存失败不能改变 D1 写入结果。
@@ -34,8 +34,8 @@ Nami Blog 已使用 Next.js、Hono 和 D1 运行在单个 Cloudflare Worker。�
 ### 负面影响
 
 - KV 是最终一致存储，后台修改后不同地区可能短时间看到旧缓存。
-- 需要维护 TTL、key 版本和失效测试。
-- Worker 增加一个 Cloudflare 存储 binding，部署清单比仅 D1 多一项。
+- 需要维护缓存有效时间、键名版本和清理测试。
+- Worker 多了一个 Cloudflare KV 绑定。
 
 ### 中性影响
 
