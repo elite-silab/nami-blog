@@ -42,7 +42,7 @@
 
 ## 配置
 
-根目录 `wrangler.jsonc` 只需声明名为 `CACHE` 的 KV 绑定。Wrangler 会在首次部署时自动配置缓存空间，用户不需要手动创建 KV，也不需要复制空间 ID。
+生产部署时在 Cloudflare 创建名为 `nami-blog-cache` 的 KV 命名空间，将 Namespace ID 填写到根目录 `wrangler.jsonc` 的 `CACHE.id`。本地开发不需要额外配置 KV。
 
 ## 验证结果
 

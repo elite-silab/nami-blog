@@ -14,6 +14,8 @@ Nami Blog 已使用 Next.js、Hono 和 D1 运行在单个 Cloudflare Worker。�
 
 在同一个 Worker 中增加名为 `CACHE` 的 Workers KV 绑定，它只是可以删除和重建的公开内容副本。
 
+生产部署时由站长在 Cloudflare 创建 KV 命名空间，并将 Namespace ID 显式填写到根目录 `wrangler.jsonc` 的 `CACHE.id`；本地开发不需要额外配置 KV。
+
 - D1 是文章、分类、标签、友链和站点设置的唯一真数据源。
 - KV 仅保存已发布、公开且不含访客隐私的数据。
 - 文章列表、文章详情、分类、标签、友链和公开设置会先读取 KV，未命中时再读取 D1；搜索始终直接读取 D1。

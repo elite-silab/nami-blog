@@ -4,12 +4,10 @@
 
 - 一个 GitHub 仓库
 - 一个 Cloudflare D1 数据库
+- 一个 Cloudflare KV 命名空间
 - 一个 Cloudflare Worker
-- 一个由 Wrangler 自动配置的 KV 缓存
 
 不需要购买服务器，不需要创建 Pages，也不需要配置跨域或 Deploy Hook。
-
-KV 不需要手动创建，也不需要复制空间 ID。根目录 `wrangler.jsonc` 只声明名为 `CACHE` 的绑定，第一次部署时 Wrangler 会自动配置。
 
 官方实例地址：`https://nami-blog.codeelite.workers.dev`
 
@@ -21,7 +19,16 @@ KV 不需要手动创建，也不需要复制空间 ID。根目录 `wrangler.jso
 
 所有可以公开的 Cloudflare 配置集中在根目录 `wrangler.jsonc`。生产密码和 JWT 密钥稍后填写在 Cloudflare 控制台，不会出现在 GitHub。
 
-## 第一步：创建 D1 数据库
+## 第一步：创建 D1 与 KV
+
+在 Cloudflare 控制台创建下面两个资源，并分别复制它们的 ID：
+
+| 资源 | 名称 | 复制内容 |
+| --- | --- | --- |
+| D1 | `nami-blog` | Database ID |
+| KV | `nami-blog-cache` | Namespace ID |
+
+### 创建 D1
 
 1. 在 Cloudflare 左侧打开 **Storage & databases**。
 2. 进入 **D1 SQL database**。
@@ -31,11 +38,21 @@ KV 不需要手动创建，也不需要复制空间 ID。根目录 `wrangler.jso
 
 Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密码。
 
+### 创建 KV
+
+1. 回到 **Storage & databases**。
+2. 进入 **KV**。
+3. 点击 **Create a namespace**。
+4. 名称填写 `nami-blog-cache`。
+5. 创建完成后复制 **Namespace ID**。
+
+Namespace ID 也是公开的资源绑定标识，不是密码。D1 Database ID 和 KV Namespace ID 都需要写入 `wrangler.jsonc`。
+
 ## 第二步：编辑公开配置
 
 回到自己的 GitHub 仓库，打开根目录 `wrangler.jsonc`，点击铅笔按钮编辑。
 
-这一步只需要替换 D1 ID。Worker 名称和 `CACHE` 保持原样，正式网址等第一次部署完成后再修改：
+将 `NEXT_PUBLIC_SITE_URL`、D1 Database ID 和 KV Namespace ID 替换成你自己的值：
 
 ```json
 {
@@ -44,7 +61,10 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
     "NEXT_PUBLIC_SITE_URL": "https://nami-blog.codeelite.workers.dev"
   },
   "kv_namespaces": [
-    { "binding": "CACHE" }
+    {
+      "binding": "CACHE",
+      "id": "你的-KV-Namespace-ID"
+    }
   ],
   "d1_databases": [
     {
@@ -56,10 +76,16 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 - `name`：保持 `nami-blog`，不需要修改。
 - `database_id`：替换为第一步复制的值。
-- `NEXT_PUBLIC_SITE_URL`：第一次部署时先保持原样；部署完成后再换成自己的实际地址。
-- `CACHE`：公开内容缓存，保持现有写法，不填写 ID。
+- `NEXT_PUBLIC_SITE_URL`：填写你的 Worker 完整 HTTPS 地址。
+- `CACHE.id`：替换为第一步复制的 KV Namespace ID。
 
-不同 Cloudflare 账号有各自的 Workers 子域，所以大家都使用 `nami-blog` 不会互相冲突。Fork 用户在首次部署前，真正必须替换的只有 `database_id`。
+Cloudflare 的 Workers 子域可在控制台中查看。Worker 名称保持 `nami-blog` 时，地址通常是：
+
+```text
+https://nami-blog.你的Workers子域.workers.dev
+```
+
+不同 Cloudflare 账号有各自的 Workers 子域，所以大家都使用 `nami-blog` 不会互相冲突。
 
 不要向文件中添加 `ADMIN_INITIAL_PASSWORD`、`JWT_SECRET` 或 `JWT_REFRESH_SECRET`。
 
@@ -67,7 +93,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 1. 打开 **Workers & Pages**。
 2. 点击 **Create**。
-3. 选择导入 Git 仓库的入口，例如 **Import a repository**。
+3. 选择 **Import from Git**。
 4. 授权 GitHub，并选择自己的 `nami-blog` 仓库。
 5. 选择生产分支 `main`。
 
@@ -76,23 +102,17 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 | 设置 | 值 |
 | --- | --- |
 | Project name | `nami-blog` |
-| Root directory | 留空 |
+| Production branch | `main` |
+| Root directory | 留空，使用仓库根目录 |
 | Build command | `pnpm --filter @nami/web build:worker` |
 | Deploy command | `pnpm --filter @nami/web deploy:worker` |
+| Node.js | `22.12.0` 或更新的 22.x |
 
-项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
-
-Worker 名称保持 `nami-blog` 时，地址通常是：
-
-```text
-https://nami-blog.你的Workers子域.workers.dev
-```
-
-第一次部署时，日志可能会显示 Wrangler 正在自动配置 KV，这是正常现象。它只会为当前 Worker 准备缓存空间，不会保存密码、草稿、评论隐私或网站备份。
+这里必须创建 **Worker**，不要选择 Pages，也不要填写 Build output directory。
 
 ### 找不到 Build output directory 正常吗？
 
-正常。Nami 现在部署为 Worker，不是 Pages 静态站点，因此不填写 `apps/web/dist`，也不需要 Build output directory。OpenNext 会自动生成 Worker 和静态资源产物。
+正常。Nami 现在部署为 Worker，不是 Pages 静态站点，因此不填写 `apps/web/dist`。OpenNext 会自动生成 Worker 和静态资源产物。
 
 ## 第四步：添加生产 Secret
 
@@ -120,7 +140,7 @@ https://nami-blog.你的Workers子域.workers.dev
 https://nami-blog.codeelite.workers.dev
 ```
 
-Fork 用户需要回 GitHub 编辑 `wrangler.jsonc`，把 `NEXT_PUBLIC_SITE_URL` 改为刚复制的地址，再提交一次。Cloudflare 会自动重新部署。
+如果实际地址与你此前填写的不一致，回 GitHub 编辑 `wrangler.jsonc`，把 `NEXT_PUBLIC_SITE_URL` 改为刚复制的地址，再提交一次。Cloudflare 会自动重新部署。
 
 这个变量是公开配置，不是 Secret。它用于：
 
@@ -184,9 +204,10 @@ https://nami-blog.codeelite.workers.dev/admin/login
 依次检查：
 
 1. `wrangler.jsonc` 的 `database_id` 是否属于当前 Cloudflare 账号；
-2. 部署日志中 `pnpm db:migrate:prod` 是否成功；
-3. 三个 Secret 是否存在且名称完全正确；
-4. 打开 `/api/v1/healthz` 是否返回 `{"status":"ok","service":"nami-blog"}`。
+2. `wrangler.jsonc` 的 `CACHE.id` 是否属于当前 Cloudflare 账号；
+3. 部署日志中的 D1 migration 是否成功；
+4. 三个 Secret 是否存在且名称完全正确；
+5. 打开 `/api/v1/healthz` 是否返回 `{"status":"ok","service":"nami-blog"}`。
 
 健康检查成功但登录仍失败时，查看 Worker Logs 中第一条实际异常，不要公开日志里的 Cookie 或 Token。
 
@@ -219,7 +240,9 @@ Worker 的默认地址还包含你自己的 Workers 子域。不同 Cloudflare �
 
 - [ ] 只有一个生产 Worker
 - [ ] D1 绑定名称为 `DB`
+- [ ] D1 Database ID 已替换为自己的值
 - [ ] KV 绑定名称为 `CACHE`
+- [ ] KV Namespace ID 已替换为自己的值
 - [ ] 三个 Secret 已设置
 - [ ] 首页和 `/api/v1/healthz` 可访问
 - [ ] `/admin/login` 可以登录

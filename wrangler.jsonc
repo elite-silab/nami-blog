@@ -10,7 +10,8 @@
   },
   "kv_namespaces": [
     {
-      "binding": "CACHE"
+      "binding": "CACHE",
+      "id": "c044262d5d2849f0bd0ff75fad39ad4d"
     }
   ],
   "vars": {
