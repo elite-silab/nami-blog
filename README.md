@@ -98,13 +98,14 @@ KV 不需要手动创建，Wrangler 第一次部署时会自动配置。
 
 ### 2. 编辑唯一配置
 
-在 GitHub 网页打开根目录 `wrangler.jsonc`，点击铅笔按钮，修改：
+在 GitHub 网页打开根目录 `wrangler.jsonc`，点击铅笔按钮：
 
-- `name`：你的 Worker 名称。
-- `database_id`：刚创建的 D1 Database ID。
-- `NEXT_PUBLIC_SITE_URL`：第一次部署后再改成 Cloudflare 显示的实际地址。
+- 将 `database_id` 替换为刚创建的 D1 Database ID。
+- `name` 保持 `nami-blog`，不需要修改。
+- `CACHE` 保持原样，不需要填写 KV ID。
+- `NEXT_PUBLIC_SITE_URL` 第一次部署时先保持原样，拿到自己的网址后再修改。
 
-`Database ID`、Worker 名称和网站地址都不是密码，可以保存在公开仓库。
+Fork 用户在首次部署前，真正必须替换的只有 `database_id`。
 
 ### 3. 创建唯一 Worker
 
@@ -112,6 +113,7 @@ KV 不需要手动创建，Wrangler 第一次部署时会自动配置。
 
 | 设置 | 填写内容 |
 |:---|:---|
+| Project name | `nami-blog` |
 | Production branch | `main` |
 | Root directory | 留空，使用仓库根目录 |
 | Build command | `pnpm build:worker` |
@@ -119,6 +121,12 @@ KV 不需要手动创建，Wrangler 第一次部署时会自动配置。
 | Node.js | `22` 或更新的 22.x |
 
 这里必须创建 **Worker**，不要选择 Pages，也不需要填写 Build output directory。
+
+Worker 名称保持 `nami-blog` 时，默认地址通常是：
+
+```text
+https://nami-blog.你的Workers子域.workers.dev
+```
 
 ### 4. 填写生产密钥
 

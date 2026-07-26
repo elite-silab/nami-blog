@@ -35,7 +35,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 回到自己的 GitHub 仓库，打开根目录 `wrangler.jsonc`，点击铅笔按钮编辑。
 
-需要确认以下配置；只修改 Worker 名称、正式网址和 D1 ID，`CACHE` 保持原样：
+这一步只需要替换 D1 ID。Worker 名称和 `CACHE` 保持原样，正式网址等第一次部署完成后再修改：
 
 ```json
 {
@@ -54,10 +54,12 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 }
 ```
 
-- `name`：你想使用的 Worker 名称。
+- `name`：保持 `nami-blog`，不需要修改。
 - `database_id`：替换为第一步复制的值。
-- `NEXT_PUBLIC_SITE_URL`：官方仓库已经填好官方地址；Fork 用户第一次部署后再换成自己的实际地址。
+- `NEXT_PUBLIC_SITE_URL`：第一次部署时先保持原样；部署完成后再换成自己的实际地址。
 - `CACHE`：公开内容缓存，保持现有写法，不填写 ID。
+
+不同 Cloudflare 账号有各自的 Workers 子域，所以大家都使用 `nami-blog` 不会互相冲突。Fork 用户在首次部署前，真正必须替换的只有 `database_id`。
 
 不要向文件中添加 `ADMIN_INITIAL_PASSWORD`、`JWT_SECRET` 或 `JWT_REFRESH_SECRET`。
 
@@ -73,11 +75,18 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 | 设置 | 值 |
 | --- | --- |
+| Project name | `nami-blog` |
 | Root directory | 留空 |
 | Build command | `pnpm build:worker` |
 | Deploy command | `pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc` |
 
 项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
+
+Worker 名称保持 `nami-blog` 时，地址通常是：
+
+```text
+https://nami-blog.你的Workers子域.workers.dev
+```
 
 第一次部署时，日志可能会显示 Wrangler 正在自动配置 KV，这是正常现象。它只会为当前 Worker 准备缓存空间，不会保存密码、草稿、评论隐私或网站备份。
 
@@ -194,9 +203,9 @@ https://nami-blog.codeelite.workers.dev/admin/login
 
 确认使用仓库最新版本，然后访问 `/rss.xml`。当前实现已经声明 `content:encoded` 命名空间，并对正文使用 CDATA 编码。
 
-### Worker 名称被占用
+### 为什么不需要修改 Worker 名称？
 
-修改 `wrangler.jsonc` 的 `name`，部署后复制 Cloudflare 实际地址，再同步修改 `NEXT_PUBLIC_SITE_URL`。
+Worker 的默认地址还包含你自己的 Workers 子域。不同 Cloudflare 账号都可以使用 `nami-blog` 这个名称，不会与官方项目冲突。只有你自己的账号中已经存在另一个同名 Worker，并且确实想保留两个时，才需要另外改名。
 
 ### 使用自定义域名后分享地址仍是旧地址
 
