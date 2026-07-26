@@ -8,6 +8,11 @@
     "binding": "ASSETS",
     "directory": "apps/web/.open-next/assets"
   },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE"
+    }
+  ],
   "vars": {
     "SITE_NAME": "Nami Blog",
     "NEXT_PUBLIC_SITE_URL": "https://nami-blog.codeelite.workers.dev"

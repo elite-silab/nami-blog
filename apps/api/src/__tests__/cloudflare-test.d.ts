@@ -2,6 +2,7 @@
 declare module "cloudflare:test" {
   export const env: {
     DB: D1Database;
+    CACHE: KVNamespace;
     JWT_SECRET: string;
     SITE_NAME: string;
   };
@@ -10,6 +11,7 @@ declare module "cloudflare:test" {
 declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
+    CACHE: KVNamespace;
     JWT_SECRET: string;
     SITE_NAME: string;
   };

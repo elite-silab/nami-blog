@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import app from "../index";
 import { seedDatabase } from "./helpers";
+import { publicCacheKeys } from "../lib/public-cache";
 
 async function apiFetch(path: string, init?: RequestInit) {
   return app.fetch(new Request(`http://localhost${path}`, init), env as any);
@@ -21,6 +22,63 @@ beforeAll(async () => {
 });
 
 describe("管理端文章写作流程", () => {
+  it("发布公开文章后应清除公开列表缓存", async () => {
+    const key = publicCacheKeys.posts(1, 99, "", "");
+    await (env as any).CACHE.delete(key);
+
+    const first = await apiFetch("/api/v1/posts?page=1&limit=99");
+    const cached = await apiFetch("/api/v1/posts?page=1&limit=99");
+    expect(first.headers.get("X-Nami-Cache")).toBe("MISS");
+    expect(cached.headers.get("X-Nami-Cache")).toBe("HIT");
+
+    const create = await apiFetch("/api/admin/posts", {
+      method: "POST",
+      headers: {
+        Authorization: authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "KV 缓存失效测试",
+        slug: "kv-cache-invalidation-test",
+        content: "公开正文",
+        status: "published",
+        is_public: 1,
+      }),
+    });
+    expect(create.status).toBe(200);
+
+    const refreshed = await apiFetch("/api/v1/posts?page=1&limit=99");
+    const payload = (await refreshed.json()) as { data: Array<{ slug: string }> };
+    expect(refreshed.headers.get("X-Nami-Cache")).toBe("MISS");
+    expect(payload.data.some((post) => post.slug === "kv-cache-invalidation-test")).toBe(true);
+  });
+
+  it("仅保存草稿时不应清除公开列表缓存", async () => {
+    const key = publicCacheKeys.posts(1, 98, "", "");
+    await (env as any).CACHE.delete(key);
+    await apiFetch("/api/v1/posts?page=1&limit=98");
+    const cached = await apiFetch("/api/v1/posts?page=1&limit=98");
+    expect(cached.headers.get("X-Nami-Cache")).toBe("HIT");
+
+    const create = await apiFetch("/api/admin/posts", {
+      method: "POST",
+      headers: {
+        Authorization: authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "KV 草稿测试",
+        slug: "kv-cache-draft-test",
+        content: "草稿正文",
+        status: "draft",
+      }),
+    });
+    expect(create.status).toBe(200);
+
+    const afterDraft = await apiFetch("/api/v1/posts?page=1&limit=98");
+    expect(afterDraft.headers.get("X-Nami-Cache")).toBe("HIT");
+  });
+
   it("应创建中文 slug 文章并允许清空可选字段", async () => {
     const create = await apiFetch("/api/admin/posts", {
       method: "POST",

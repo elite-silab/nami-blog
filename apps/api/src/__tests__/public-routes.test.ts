@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { env } from "cloudflare:workers";
 import app from "../index";
 import { seedDatabase } from "./helpers";
+import { publicCacheKeys } from "../lib/public-cache";
 
 // 测试辅助: 创建带 env 绑定的请求
 function createRequest(path: string, init?: RequestInit) {
@@ -34,6 +35,21 @@ describe("GET / — 健康检查", () => {
 });
 
 describe("GET /api/v1/posts — 文章列表", () => {
+  it("非搜索列表第一次应 MISS，第二次应 HIT", async () => {
+    await (env as any).CACHE.delete(publicCacheKeys.posts(91, 1, "", ""));
+
+    const first = await apiFetch("/api/v1/posts?page=91&limit=1");
+    const second = await apiFetch("/api/v1/posts?page=91&limit=1");
+
+    expect(first.headers.get("X-Nami-Cache")).toBe("MISS");
+    expect(second.headers.get("X-Nami-Cache")).toBe("HIT");
+  });
+
+  it("关键词搜索应绕过 KV", async () => {
+    const response = await apiFetch("/api/v1/posts?q=置顶");
+    expect(response.headers.get("X-Nami-Cache")).toBe("BYPASS");
+  });
+
   it("应返回已发布的文章（不含草稿）", async () => {
     const res = await apiFetch("/api/v1/posts");
     expect(res.status).toBe(200);

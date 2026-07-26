@@ -5,8 +5,11 @@
 - 一个 GitHub 仓库
 - 一个 Cloudflare D1 数据库
 - 一个 Cloudflare Worker
+- 一个由 Wrangler 自动配置的 KV 缓存
 
 不需要购买服务器，不需要创建 Pages，也不需要配置跨域或 Deploy Hook。
+
+KV 不需要手动创建，也不需要复制 Namespace ID。根目录 `wrangler.jsonc` 只声明 `CACHE` binding，第一次部署时 Wrangler 会自动配置。
 
 官方实例地址：`https://nami-blog.codeelite.workers.dev`
 
@@ -32,7 +35,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 
 回到自己的 GitHub 仓库，打开根目录 `wrangler.jsonc`，点击铅笔按钮编辑。
 
-需要确认三处：
+需要确认以下配置；只修改 Worker 名称、正式网址和 D1 ID，`CACHE` 保持原样：
 
 ```json
 {
@@ -40,6 +43,9 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
   "vars": {
     "NEXT_PUBLIC_SITE_URL": "https://nami-blog.codeelite.workers.dev"
   },
+  "kv_namespaces": [
+    { "binding": "CACHE" }
+  ],
   "d1_databases": [
     {
       "database_id": "你的-D1-Database-ID"
@@ -51,6 +57,7 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 - `name`：你想使用的 Worker 名称。
 - `database_id`：替换为第一步复制的值。
 - `NEXT_PUBLIC_SITE_URL`：官方仓库已经填好官方地址；Fork 用户第一次部署后再换成自己的实际地址。
+- `CACHE`：公开读缓存，只保留 binding 名称，不填写 ID。
 
 不要向文件中添加 `ADMIN_INITIAL_PASSWORD`、`JWT_SECRET` 或 `JWT_REFRESH_SECRET`。
 
@@ -71,6 +78,8 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 | Deploy command | `pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc` |
 
 项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
+
+部署日志首次出现 KV provisioning 属于正常现象。它会为当前 Worker 配置缓存空间，不会保存密码、草稿、评论隐私或网站备份。
 
 ### 找不到 Build output directory 正常吗？
 
@@ -139,7 +148,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 4. 点击“发布文章”。
 5. 返回前台，文章应立即出现。
 
-这里不需要点击重新部署。文章、分类、标签、友链、主题和站点设置都保存在 D1，保存后直接由 Next.js 动态读取。
+这里不需要点击重新部署。文章、分类、标签、友链、主题和站点设置都保存在 D1，后台保存成功后还会自动清理 KV 公开缓存。
 
 ## 绑定自己的域名
 
@@ -179,7 +188,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 - 状态是“已发布”
 - 已勾选“公开”
 
-现在是动态单 Worker 架构，不需要重新部署或等待静态构建。
+现在是动态单 Worker 架构，不需要重新部署或等待静态构建。浏览器开发者工具中查看公开 API 的 `X-Nami-Cache`：`MISS` 表示刚从 D1 读取，`HIT` 表示来自 KV，`BYPASS` 表示该请求不使用缓存。KV 全球同步有短暂延迟，刷新后仍异常时再检查 Worker Logs。
 
 ### RSS 显示 XML 错误
 
@@ -201,6 +210,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 
 - [ ] 只有一个生产 Worker
 - [ ] D1 绑定名称为 `DB`
+- [ ] KV 绑定名称为 `CACHE`
 - [ ] 三个 Secret 已设置
 - [ ] 首页和 `/api/v1/healthz` 可访问
 - [ ] `/admin/login` 可以登录

@@ -27,7 +27,7 @@ Nami Blog 面向个人站长和开源使用者。原项目使用 Astro SSG 托�
 
 ### 正面影响
 
-- Cloudflare 只需维护一个 Worker、一个 D1 binding 和一组 Secrets。
+- Cloudflare 只需维护一个 Worker、一个 D1 binding、一个自动配置的 KV 缓存和一组 Secrets。
 - 文章及站点设置写入成功后立即可见，不需要重新部署。
 - Next.js 的社区、组件生态和开发者认知更广，有利于开源贡献。
 - 保留 Hono 业务层可降低迁移风险，也便于 API 独立测试。
@@ -66,4 +66,4 @@ Nami Blog 面向个人站长和开源使用者。原项目使用 Astro SSG 托�
 - 可靠性：D1 写入成功即内容生效；不依赖外部部署 Hook。
 - 可维护性：根目录只保留一份 Wrangler 配置、一条部署命令和一份 `.env` 本地配置。
 - 可访问性：保留键盘操作、焦点样式、ARIA 状态和移动端管理导航。
-- 成本：不新增 KV、R2、Queues 或第二个 Worker。
+- 成本：不新增第二个 Worker；KV 仅作为 ADR-0003 定义的可降级公开缓存，不承载主数据。

@@ -9,6 +9,7 @@ import { publicRoutes } from "./routes/public";
 
 export type Bindings = {
   DB: D1Database;
+  CACHE?: KVNamespace;
   JWT_SECRET: string;
   JWT_REFRESH_SECRET?: string;
   ADMIN_INITIAL_PASSWORD?: string;

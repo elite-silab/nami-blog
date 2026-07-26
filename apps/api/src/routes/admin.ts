@@ -9,6 +9,7 @@ import {
   noPublicContentChange,
   publicContentChanged,
 } from "../lib/publication";
+import { invalidatePublicCache } from "../lib/public-cache";
 import {
   exportSiteBackup,
   importSiteBackup,
@@ -20,6 +21,23 @@ export const adminRoutes = new Hono<Env>();
 
 // 所有 /api/admin/* 路由需要鉴权
 adminRoutes.use("*", adminAuth);
+adminRoutes.use("*", async (c, next) => {
+  await next();
+
+  if (c.req.method === "GET" || !c.res.ok || !c.env.CACHE) return;
+  if (!c.res.headers.get("Content-Type")?.includes("application/json")) return;
+
+  try {
+    const payload = (await c.res.clone().json()) as {
+      data?: { publication?: { status?: string } };
+    };
+    if (payload.data?.publication?.status === "live") {
+      await invalidatePublicCache(c.env.CACHE);
+    }
+  } catch {
+    // 非标准 JSON 响应不参与公开缓存失效，不能影响已完成的 D1 写入。
+  }
+});
 
 function isPublicPost(status: string, isPublic: number) {
   return status === "published" && isPublic === 1;

@@ -6,6 +6,7 @@ export async function getApiRuntime() {
   const source = runtime.env;
   const env: Bindings = {
     DB: source.DB,
+    CACHE: source.CACHE,
     JWT_SECRET: source.JWT_SECRET || process.env.JWT_SECRET || "",
     JWT_REFRESH_SECRET:
       source.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET,

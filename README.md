@@ -1,6 +1,6 @@
 # Nami Blog
 
-一个运行在单个 Cloudflare Worker 上的轻量个人博客。前台、管理后台和 API 使用同一个域名，文章与设置保存在 Cloudflare D1，发布后立即生效。
+一个运行在单个 Cloudflare Worker 上的轻量个人博客。前台、管理后台和 API 使用同一个域名；D1 保存真实数据，Workers KV 加速公开读取。
 
 生产站点：[https://nami-blog.codeelite.workers.dev](https://nami-blog.codeelite.workers.dev)
 开源仓库：[elite-silab/nami-blog](https://github.com/elite-silab/nami-blog)
@@ -11,6 +11,7 @@
 - OpenNext for Cloudflare，整个项目只部署为一个 Worker
 - Hono API 与 Web 同源，无需配置 CORS、Pages 或 Deploy Hook
 - Cloudflare D1 保存文章、分类、标签、评论、友链和站点设置
+- Workers KV 缓存公开文章与站点元数据，异常时自动回退 D1
 - 完整管理后台：Markdown 写作、草稿保护、主题、评论和备份
 - 文章发布、修改设置后实时生效，无需重新部署
 - RSS、Sitemap、SEO 元数据、阅读统计和响应式界面
@@ -25,7 +26,8 @@
             ├─ Next.js 前台与管理后台
             ├─ /api/* → Hono API
             ├─ 静态资源
-            └─ Cloudflare D1
+            ├─ Cloudflare D1（真实数据）
+            └─ Workers KV（公开读缓存）
 ```
 
 | 部分 | 技术 |
@@ -33,6 +35,7 @@
 | Web | Next.js 16、React 19、Tailwind CSS 4 |
 | API | Hono |
 | 数据库 | Cloudflare D1（SQLite） |
+| 公开缓存 | Cloudflare Workers KV |
 | Cloudflare 适配 | OpenNext for Cloudflare |
 | 包管理 | pnpm Workspace |
 
@@ -70,7 +73,7 @@ pnpm deploy         # 迁移远程 D1 并部署
 
 ## 部署到 Cloudflare
 
-这里只需要一个 Worker 和一个 D1，不需要创建 Cloudflare Pages。
+这里只需要一个 Worker 和一个 D1，不需要创建 Cloudflare Pages。根配置中的 `CACHE` KV 会在部署时由 Wrangler 自动配置，不需要复制 KV ID 或执行额外命令。
 
 ### 1. Fork 仓库并创建 D1
 
@@ -83,6 +86,8 @@ pnpm deploy         # 迁移远程 D1 并部署
 - `NEXT_PUBLIC_SITE_URL`：第一次可以暂时保留，拿到实际地址后再修改
 
 `database_id`、Worker 名称和公开网址都不是密码，可以提交到公开仓库。JWT 密钥和管理员密码绝不能写在这个文件中。
+
+`kv_namespaces` 中只保留 `"binding": "CACHE"` 即可。Wrangler 会按 Worker 名称自动配置缓存空间，新手不需要到 KV 页面手动创建。
 
 ### 2. 从 Git 连接一个 Worker
 
@@ -136,12 +141,12 @@ https://nami-blog.codeelite.workers.dev/admin/login
 
 ## 内容与配置什么时候生效
 
-- 发布、修改或删除文章：立即生效
-- 分类、标签和友链：立即生效
-- 网站名称、SEO、主题和评论开关：立即生效
+- 发布、修改或删除文章：保存成功后自动清理公开缓存，不需要重新部署
+- 分类、标签和友链：保存成功后自动清理公开缓存
+- 网站名称、SEO、主题和评论开关：保存成功后自动清理公开缓存
 - 修改 `NEXT_PUBLIC_SITE_URL`、代码或 Worker 绑定：需要重新部署
 
-文章和站点设置属于 D1 数据，不需要为了内容变化重新构建网站。
+文章和站点设置始终以 D1 为准，不需要为了内容变化重新构建网站。KV 在全球采用最终一致同步，通常会立即更新；极少数地区可能短时间读到旧缓存，TTL 到期后会自动恢复。
 
 ## 自定义域名
 
@@ -179,6 +184,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 - [Git 工作规范](docs/Git工作规范.md)
 - [OpenAPI](openapi/nami-blog.yaml)
 - [单 Worker 架构决策](docs/adr/0002-adopt-nextjs-single-worker.md)
+- [KV 公开缓存架构决策](docs/adr/0003-use-kv-public-read-cache.md)
 
 ## 安全提醒
 
