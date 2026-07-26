@@ -149,8 +149,8 @@ D1 Database ID 不是访问凭据。真正的 Secret 只在 Cloudflare Dashboard
 
 Cloudflare Git 集成监听 `main`。推荐设置：
 
-- Build：`pnpm build:worker`
-- Deploy：`pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc`
+- Build：`pnpm --filter @nami/web build:worker`
+- Deploy：`pnpm --filter @nami/web deploy:worker`
 
 发布成功后检查首页、登录、文章、RSS、Sitemap 和健康检查。
 

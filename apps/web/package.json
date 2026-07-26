@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "next dev --turbopack -p 4322",
     "build": "next build",
-    "cf:build": "node scripts/build-worker.mjs",
+    "build:worker": "node scripts/build-worker.mjs",
+    "deploy:worker": "wrangler d1 migrations apply DB --remote --config ../../wrangler.jsonc && wrangler deploy --config ../../wrangler.jsonc",
+    "deploy:full": "pnpm build:worker && pnpm run deploy:worker",
     "preview": "opennextjs-cloudflare preview --config ../../wrangler.jsonc",
     "lint": "eslint src scripts --max-warnings=0",
     "typecheck": "tsc --noEmit",

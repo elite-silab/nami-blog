@@ -77,8 +77,8 @@ Database ID 看起来像一串 UUID。它只是数据库绑定标识，不是密
 | --- | --- |
 | Project name | `nami-blog` |
 | Root directory | 留空 |
-| Build command | `pnpm build:worker` |
-| Deploy command | `pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc` |
+| Build command | `pnpm --filter @nami/web build:worker` |
+| Deploy command | `pnpm --filter @nami/web deploy:worker` |
 
 项目使用 Node.js 22。如果页面提供 Node 版本变量，可添加 `NODE_VERSION=22`。
 

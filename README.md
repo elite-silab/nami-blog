@@ -116,8 +116,8 @@ Fork 用户在首次部署前，真正必须替换的只有 `database_id`。
 | Project name | `nami-blog` |
 | Production branch | `main` |
 | Root directory | 留空，使用仓库根目录 |
-| Build command | `pnpm build:worker` |
-| Deploy command | `pnpm db:migrate:prod && pnpm exec wrangler deploy --config wrangler.jsonc` |
+| Build command | `pnpm --filter @nami/web build:worker` |
+| Deploy command | `pnpm --filter @nami/web deploy:worker` |
 | Node.js | `22` 或更新的 22.x |
 
 这里必须创建 **Worker**，不要选择 Pages，也不需要填写 Build output directory。
