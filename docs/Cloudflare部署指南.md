@@ -52,7 +52,7 @@ Namespace ID 也是公开的资源绑定标识，不是密码。D1 Database ID �
 
 回到自己的 GitHub 仓库，打开根目录 `wrangler.jsonc`，点击铅笔按钮编辑。
 
-将 `NEXT_PUBLIC_SITE_URL`、D1 Database ID 和 KV Namespace ID 替换成你自己的值：
+这一步只替换 D1 Database ID 和 KV Namespace ID：
 
 ```json
 {
@@ -76,14 +76,8 @@ Namespace ID 也是公开的资源绑定标识，不是密码。D1 Database ID �
 
 - `name`：保持 `nami-blog`，不需要修改。
 - `database_id`：替换为第一步复制的值。
-- `NEXT_PUBLIC_SITE_URL`：填写你的 Worker 完整 HTTPS 地址。
 - `CACHE.id`：替换为第一步复制的 KV Namespace ID。
-
-Cloudflare 的 Workers 子域可在控制台中查看。Worker 名称保持 `nami-blog` 时，地址通常是：
-
-```text
-https://nami-blog.你的Workers子域.workers.dev
-```
+- `NEXT_PUBLIC_SITE_URL`：此时还没有 Worker 地址，暂时保持原样，第一次部署完成后再修改。
 
 不同 Cloudflare 账号有各自的 Workers 子域，所以大家都使用 `nami-blog` 不会互相冲突。
 
@@ -114,9 +108,35 @@ https://nami-blog.你的Workers子域.workers.dev
 
 正常。Nami 现在部署为 Worker，不是 Pages 静态站点，因此不填写 `apps/web/dist`。OpenNext 会自动生成 Worker 和静态资源产物。
 
-## 第四步：添加生产 Secret
+## 第四步：填写实际网站地址
 
-第一次构建后，进入刚创建的 Worker：
+部署完成后，Cloudflare 会显示实际的 `workers.dev` 地址。不要凭用户名猜测地址，直接复制页面显示的完整 URL。
+
+官方项目使用：
+
+```text
+https://nami-blog.codeelite.workers.dev
+```
+
+回 GitHub 编辑 `wrangler.jsonc`，把 `NEXT_PUBLIC_SITE_URL` 改为刚复制的完整地址，再提交一次。Cloudflare 会自动重新部署。
+
+```json
+"NEXT_PUBLIC_SITE_URL": "https://nami-blog.你的Workers子域.workers.dev"
+```
+
+这个变量是公开配置，不是 Secret。它用于：
+
+- SEO canonical 地址
+- Open Graph 分享链接
+- `/sitemap.xml`
+- `/rss.xml`
+- `/robots.txt`
+
+以后如果绑定自己的域名，也要将 `NEXT_PUBLIC_SITE_URL` 改成自定义域名并重新部署一次。
+
+## 第五步：添加生产 Secret
+
+进入刚创建的 Worker：
 
 **Settings → Variables and Secrets → Add**
 
@@ -129,26 +149,6 @@ https://nami-blog.你的Workers子域.workers.dev
 | `JWT_REFRESH_SECRET` | 与 JWT_SECRET 不同的随机长字符串 |
 
 保存后重新部署一次。不要把这些值写入 `wrangler.jsonc`、`.env.example`、GitHub Issue 或截图。
-
-## 第五步：确认实际网址
-
-部署完成后，Cloudflare 会显示实际的 `workers.dev` 地址。不要凭用户名猜测地址，直接复制页面显示的完整 URL。
-
-官方项目使用：
-
-```text
-https://nami-blog.codeelite.workers.dev
-```
-
-如果实际地址与你此前填写的不一致，回 GitHub 编辑 `wrangler.jsonc`，把 `NEXT_PUBLIC_SITE_URL` 改为刚复制的地址，再提交一次。Cloudflare 会自动重新部署。
-
-这个变量是公开配置，不是 Secret。它用于：
-
-- SEO canonical 地址
-- Open Graph 分享链接
-- `/sitemap.xml`
-- `/rss.xml`
-- `/robots.txt`
 
 ## 第六步：第一次登录
 
@@ -165,7 +165,7 @@ https://nami-blog.codeelite.workers.dev/admin/login
 ```
 
 - 用户名：`admin`
-- 密码：第四步设置的 `ADMIN_INITIAL_PASSWORD`
+- 密码：第五步设置的 `ADMIN_INITIAL_PASSWORD`
 
 如果 D1 还是空数据库，第一次成功登录会自动创建管理员。登录后进入 **站点设置 → 修改密码**，可以换成新的密码。
 

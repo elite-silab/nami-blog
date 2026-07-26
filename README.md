@@ -93,15 +93,10 @@ Fork 本仓库到你自己的 GitHub 账号。
 
 在 GitHub 网页打开根目录 `wrangler.jsonc`，点击铅笔按钮，修改：
 
-- `NEXT_PUBLIC_SITE_URL`：你的 Worker 完整 HTTPS 地址；
 - `database_id`：刚创建的 D1 ID；
 - KV 的 `id`：刚创建的 KV ID。
 
-Cloudflare 的 Workers 子域可在控制台中查看。Worker 名称保持 `nami-blog` 时，地址格式通常是：
-
-```text
-https://nami-blog.你的Workers子域.workers.dev
-```
+此时还没有 Worker 地址，`NEXT_PUBLIC_SITE_URL` 暂时保持原样，第一次部署完成后再修改。
 
 ### 4. 创建唯一 Worker
 
@@ -118,7 +113,17 @@ https://nami-blog.你的Workers子域.workers.dev
 
 这里必须创建 **Worker**，不要选择 Pages，也不要填写 Build output directory。
 
-### 5. 填写生产密钥
+### 5. 填写实际网站地址
+
+第一次部署完成后，Cloudflare 会显示你的 `workers.dev` 地址。复制这个完整地址，再回 GitHub 编辑 `wrangler.jsonc`：
+
+```json
+"NEXT_PUBLIC_SITE_URL": "https://nami-blog.你的Workers子域.workers.dev"
+```
+
+提交后 Cloudflare 会自动重新部署。如果以后使用自己的域名，也要把这里改成自定义域名并重新部署一次。
+
+### 6. 填写生产密钥
 
 进入这个 Worker 的 **Settings → Variables and Secrets**，添加三个加密 Secret：
 
@@ -130,7 +135,7 @@ https://nami-blog.你的Workers子域.workers.dev
 
 保存后重新部署一次。不要把这些生产密钥写入仓库。
 
-### 6. 登录并发布文章
+### 7. 登录并发布文章
 
 1. 打开 Worker 地址的 `/admin/login`。
 2. 用户名使用 `admin`，密码使用刚设置的 `ADMIN_INITIAL_PASSWORD`。
