@@ -281,12 +281,12 @@ export default function SettingsPage() {
   }
 
   const field =
-    "mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm";
+    "mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 text-base sm:text-sm";
   const card =
-    "space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-6";
+    "space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 sm:p-6";
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-3xl space-y-7 sm:space-y-8">
       <form onSubmit={save} className="space-y-8">
         <section>
           <h2 className="mb-4 text-lg font-semibold">基础设置</h2>
@@ -314,7 +314,7 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
               <h2 className="text-lg font-semibold">首页内容</h2>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
@@ -324,7 +324,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={resetHomeContent}
-              className="shrink-0 rounded-lg border px-3 py-2 text-xs"
+              className="min-h-10 w-full shrink-0 rounded-xl border px-3 py-2 text-xs sm:w-auto"
             >
               恢复默认
             </button>
@@ -407,7 +407,7 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
               <h2 className="text-lg font-semibold">关于页</h2>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
@@ -417,7 +417,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={resetAboutContent}
-              className="shrink-0 rounded-lg border px-3 py-2 text-xs"
+              className="min-h-10 w-full shrink-0 rounded-xl border px-3 py-2 text-xs sm:w-auto"
             >
               恢复默认
             </button>
@@ -493,7 +493,7 @@ export default function SettingsPage() {
           <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
             点击主题会立即预览，保存后自动更新前台缓存。
           </p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {THEMES.map((theme) => (
               <button
                 key={theme.id}
@@ -505,7 +505,7 @@ export default function SettingsPage() {
                 className={`overflow-hidden rounded-xl border-2 text-left ${settings.site_theme === theme.id ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20" : "border-[var(--color-border)]"}`}
               >
                 <div
-                  className="h-24 p-4"
+                  className="h-14 p-2 sm:h-24 sm:p-4"
                   style={{ background: theme.colors.bg }}
                 >
                   <div className="flex gap-2">
@@ -519,11 +519,11 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
-                <div className="bg-[var(--color-bg)] px-4 py-3">
-                  <strong>
+                <div className="bg-[var(--color-bg)] px-2 py-2 sm:px-4 sm:py-3">
+                  <strong className="block truncate text-xs sm:text-base">
                     {theme.emoji} {theme.name}
                   </strong>
-                  <p className="text-xs text-[var(--color-text-tertiary)]">
+                  <p className="hidden text-xs text-[var(--color-text-tertiary)] sm:block">
                     {theme.description}
                   </p>
                 </div>
@@ -569,14 +569,14 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="sticky bottom-2 z-20 -mx-1 flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/94 p-3 pb-[max(.75rem,env(safe-area-inset-bottom))] shadow-xl backdrop-blur sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <span
             aria-live="polite"
             className="text-sm text-[var(--color-success)]"
           >
             {status}
           </span>
-          <button className="rounded-lg bg-[var(--color-primary)] px-6 py-2 text-sm font-medium text-white">
+          <button className="min-h-11 w-full rounded-xl bg-[var(--color-primary)] px-6 py-2 text-sm font-medium text-white sm:w-auto">
             保存设置
           </button>
         </div>
@@ -588,14 +588,14 @@ export default function SettingsPage() {
           <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
             导出文章、分类、标签、评论、友链和设置；不包含管理员密码、令牌、IP、日志和仓库图片。
           </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:gap-3">
             <button
               onClick={() => void exportBackup()}
-              className="rounded-lg border px-4 py-2 text-sm"
+              className="min-h-11 rounded-xl border px-4 py-2 text-center text-sm"
             >
               导出备份
             </button>
-            <label className="cursor-pointer rounded-lg border px-4 py-2 text-sm">
+            <label className="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-4 py-2 text-center text-sm">
               选择备份文件
               <input
                 type="file"
@@ -609,7 +609,7 @@ export default function SettingsPage() {
             <button
               disabled={!backup}
               onClick={() => void importBackup()}
-              className="rounded-lg bg-[var(--color-danger)] px-4 py-2 text-sm text-white disabled:opacity-40"
+              className="min-h-11 rounded-xl bg-[var(--color-danger)] px-4 py-2 text-sm text-white disabled:opacity-40 min-[420px]:col-span-2 sm:col-span-1"
             >
               导入并替换数据
             </button>
@@ -649,8 +649,8 @@ export default function SettingsPage() {
             placeholder="确认新密码"
             className={field}
           />
-          <div className="flex items-center gap-4">
-            <button className="rounded-lg border px-4 py-2 text-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <button className="min-h-11 rounded-xl border px-4 py-2 text-sm">
               修改密码
             </button>
             <span className="text-sm">{passwordStatus}</span>
