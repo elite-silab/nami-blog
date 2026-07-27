@@ -29,5 +29,5 @@ export function ViewCounter({ slug, initialViews }: { slug: string; initialViews
 export function ShareButton() {
   const [copied, setCopied] = useState(false);
   async function copyLink() { await navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1800); }
-  return <button type="button" onClick={copyLink} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:border-[var(--color-primary)]">{copied ? "✓ 已复制" : "📋 复制链接"}</button>;
+  return <button type="button" onClick={copyLink} className="inline-flex min-h-10 items-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-bg)] px-4 text-sm font-semibold transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">{copied ? "✓ 链接已复制" : "复制文章链接"}</button>;
 }

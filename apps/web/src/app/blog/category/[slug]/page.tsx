@@ -11,5 +11,5 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   ]);
   const category = categoryResult.data.find((item) => item.slug === slug);
   if (!category) notFound();
-  return <TaxonomyPage icon="📁" kind="分类" name={category.name} posts={postResult.data} />;
+  return <TaxonomyPage kind="分类" name={category.name} posts={postResult.data} />;
 }

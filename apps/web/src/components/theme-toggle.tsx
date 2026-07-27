@@ -14,5 +14,5 @@ export function ThemeToggle() {
     else delete document.documentElement.dataset.dark;
     localStorage.setItem("nami-dark", String(next));
   }
-  return <button type="button" onClick={toggle} className="dark-toggle" aria-label="切换明暗模式" title="切换明暗模式">{dark ? "☀️" : "🌙"}</button>;
+  return <button type="button" onClick={toggle} className="dark-toggle" aria-label={dark ? "切换到浅色模式" : "切换到深色模式"} title={dark ? "切换到浅色模式" : "切换到深色模式"}>{dark ? "☀" : "☾"}</button>;
 }

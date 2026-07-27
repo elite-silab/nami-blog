@@ -17,8 +17,8 @@ export default async function FriendsPage() {
     <section className="relative mx-auto min-h-[calc(100dvh-12rem)] max-w-5xl overflow-hidden px-4 py-12 sm:py-16">
       <div className="site-grid pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 opacity-60" />
       <header className="max-w-2xl">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-primary)]">
-          Friends of Nami
+        <p className="text-xs font-semibold tracking-[0.14em] text-[var(--color-primary)]">
+          同行的朋友们
         </p>
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
           在互联网的海上，

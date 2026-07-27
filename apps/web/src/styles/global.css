@@ -326,11 +326,60 @@ select {
   color: var(--color-primary);
 }
 
+.archive-page-link {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.archive-page-link:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.footer-link {
+  color: var(--color-text-secondary);
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: var(--color-primary);
+}
+
+.public-input {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+  padding: 0.65rem 0.85rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.public-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.public-input:focus {
+  border-color: var(--color-primary);
+}
+
 /* ── Prose（文章排版） ── */
 .prose {
   max-width: 48rem;
   overflow-wrap: anywhere;
   line-height: 1.8;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose > :last-child {
+  margin-bottom: 0;
 }
 .prose h1,
 .prose h2,

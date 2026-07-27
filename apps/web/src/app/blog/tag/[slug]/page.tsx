@@ -11,5 +11,5 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
   ]);
   const tag = tagResult.data.find((item) => item.slug === slug);
   if (!tag) notFound();
-  return <TaxonomyPage icon="🏷️" kind="标签" name={tag.name} posts={postResult.data} />;
+  return <TaxonomyPage kind="标签" name={tag.name} posts={postResult.data} />;
 }

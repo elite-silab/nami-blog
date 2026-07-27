@@ -18,12 +18,15 @@ export type HomeContentSource = {
   site_description?: string;
 };
 
+const LEGACY_HOME_DESCRIPTION =
+  "Nami 是一个运行在 Cloudflare 边缘网络上的个人博客。这里记录工程实践、阅读笔记，也保留那些值得慢慢想的片刻。";
+
 export const DEFAULT_HOME_CONTENT: HomeContent = {
-  eyebrow: "Field notes from the edge",
+  eyebrow: "来自航线上的新记录",
   title: "写给正在路上的",
   titleHighlight: "技术与生活。",
   description:
-    "Nami 是一个运行在 Cloudflare 边缘网络上的个人博客。这里记录工程实践、阅读笔记，也保留那些值得慢慢想的片刻。",
+    "这里记录工程实践、阅读笔记，也保留那些值得慢慢想的片刻。愿每次阅读，都能带回一点新的启发。",
   primaryLabel: "阅读最新文章",
   secondaryLabel: "认识 Nami",
 };
@@ -35,11 +38,17 @@ export function resolveHomeContent(settings: HomeContentSource): HomeContent {
     DEFAULT_HOME_CONTENT.description;
 
   return {
-    eyebrow: settings.home_eyebrow ?? DEFAULT_HOME_CONTENT.eyebrow,
+    eyebrow:
+      settings.home_eyebrow === "Field notes from the edge"
+        ? DEFAULT_HOME_CONTENT.eyebrow
+        : (settings.home_eyebrow ?? DEFAULT_HOME_CONTENT.eyebrow),
     title: settings.home_title || DEFAULT_HOME_CONTENT.title,
     titleHighlight:
       settings.home_title_highlight || DEFAULT_HOME_CONTENT.titleHighlight,
-    description: settings.home_description ?? fallbackDescription,
+    description:
+      settings.home_description === LEGACY_HOME_DESCRIPTION
+        ? DEFAULT_HOME_CONTENT.description
+        : (settings.home_description ?? fallbackDescription),
     primaryLabel:
       settings.home_primary_label || DEFAULT_HOME_CONTENT.primaryLabel,
     secondaryLabel:
@@ -65,7 +74,7 @@ export function buildDefaultAboutMarkdown({
     email ? `- Email：[${email}](mailto:${email})` : "",
   ].filter(Boolean);
 
-  return `你好，这里是 **${siteName}** —— 一个运行在单个 Cloudflare Worker 上的轻量博客。
+  return `你好，这里是 **${siteName}** —— 一间收集技术、阅读与生活片刻的线上小屋。
 
 ${subtitle}
 
