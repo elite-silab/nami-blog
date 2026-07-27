@@ -26,7 +26,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const settings = await getPublicSettings();
   const theme = isThemeId(settings.site_theme) ? settings.site_theme : DEFAULT_THEME;
-  const siteName = settings.site_name || "Nami Blog";
   return (
     <html lang="zh-CN" data-theme={theme} suppressHydrationWarning>
       <head><Script id="nami-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} /></head>
@@ -34,7 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <a className="skip-link" href="#main-content">跳到主要内容</a>
         <SiteHeader />
         <main id="main-content" className="min-h-[calc(100vh-8rem)]">{children}</main>
-        <SiteFooter siteName={siteName} />
+        <SiteFooter />
       </body>
     </html>
   );
