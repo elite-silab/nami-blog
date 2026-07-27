@@ -20,6 +20,7 @@
     "@opennextjs/cloudflare": "1.20.2",
     "marked": "^18.0.7",
     "next": "16.2.12",
+    "pinyin-pro": "^3.28.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sanitize-html": "^2.17.6",

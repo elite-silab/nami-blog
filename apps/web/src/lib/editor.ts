@@ -1,12 +1,15 @@
+import { normalizeSlug } from "@nami/shared/slug";
+import { pinyin } from "pinyin-pro";
+
 export type MarkdownAction = "heading" | "bold" | "quote" | "link" | "code";
 
 export function slugifyTitle(title: string) {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u3400-\u9fff]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 255);
+  const transliterated = pinyin(title.normalize("NFKC"), {
+    toneType: "none",
+    nonZh: "consecutive",
+    separator: "-",
+  });
+  return normalizeSlug(transliterated);
 }
 
 export function getContentStats(content: string) {

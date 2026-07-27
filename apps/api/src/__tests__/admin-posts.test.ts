@@ -79,7 +79,7 @@ describe("管理端文章写作流程", () => {
     expect(afterDraft.headers.get("X-Nami-Cache")).toBe("HIT");
   });
 
-  it("应创建中文 slug 文章并允许清空可选字段", async () => {
+  it("应创建拼音 slug 文章并允许清空可选字段", async () => {
     const create = await apiFetch("/api/admin/posts", {
       method: "POST",
       headers: {
@@ -88,7 +88,7 @@ describe("管理端文章写作流程", () => {
       },
       body: JSON.stringify({
         title: "Cloudflare 轻量博客",
-        slug: "cloudflare-轻量博客",
+        slug: "cloudflare-qing-liang-bo-ke",
         content: "初始正文",
         excerpt: "初始摘要",
         cover_url: "https://example.com/cover.webp",
@@ -109,7 +109,7 @@ describe("管理端文章写作流程", () => {
       },
       body: JSON.stringify({
         title: "Cloudflare 轻量博客",
-        slug: "cloudflare-轻量博客",
+        slug: "cloudflare-qing-liang-bo-ke",
         content: "更新 后 的 正文",
         excerpt: "",
         cover_url: null,
@@ -126,6 +126,76 @@ describe("管理端文章写作流程", () => {
     expect(post.data.excerpt).toBeNull();
     expect(post.data.cover_url).toBeNull();
     expect(post.data.word_count).toBe(6);
+  });
+
+  it("应拒绝新文章的中文 slug", async () => {
+    const response = await apiFetch("/api/admin/posts", {
+      method: "POST",
+      headers: {
+        Authorization: authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "中文地址测试",
+        slug: "中文地址测试",
+        content: "正文",
+        status: "draft",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const result = (await response.json()) as { error: { message: string } };
+    expect(result.error.message).toContain("小写英文");
+  });
+
+  it("分类和标签应使用同一套 slug 规则", async () => {
+    for (const path of ["categories", "tags"]) {
+      const invalid = await apiFetch(`/api/admin/${path}`, {
+        method: "POST",
+        headers: {
+          Authorization: authorization,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: "开发日志", slug: "开发日志" }),
+      });
+      expect(invalid.status).toBe(400);
+
+      const valid = await apiFetch(`/api/admin/${path}`, {
+        method: "POST",
+        headers: {
+          Authorization: authorization,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "开发日志",
+          slug: `${path}-kai-fa-ri-zhi`,
+        }),
+      });
+      expect(valid.status).toBe(200);
+      const created = (await valid.json()) as { data: { id: number } };
+
+      const duplicate = await apiFetch(`/api/admin/${path}`, {
+        method: "POST",
+        headers: {
+          Authorization: authorization,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "重复的开发日志",
+          slug: `${path}-kai-fa-ri-zhi`,
+        }),
+      });
+      expect(duplicate.status).toBe(409);
+
+      const cleanup = await apiFetch(
+        `/api/admin/${path}/${created.data.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: authorization },
+        },
+      );
+      expect(cleanup.status).toBe(200);
+    }
   });
 
   it("重复 slug 应返回明确的冲突错误", async () => {

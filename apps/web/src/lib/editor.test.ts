@@ -6,10 +6,14 @@ import {
 } from "./editor";
 
 describe("文章编辑器工具", () => {
-  it("应生成适合 URL 的中英文 slug", () => {
+  it("应把中英文标题转为小写英文 slug", () => {
     expect(slugifyTitle("  Hello，Cloudflare 博客！ ")).toBe(
-      "hello-cloudflare-博客",
+      "hello-cloudflare-bo-ke",
     );
+  });
+
+  it("应把纯中文标题转为无声调拼音", () => {
+    expect(slugifyTitle("成功部署")).toBe("cheng-gong-bu-shu");
   });
 
   it("空内容阅读时间应为 0", () => {

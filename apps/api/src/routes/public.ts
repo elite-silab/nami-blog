@@ -2,6 +2,7 @@
  * 公开 API 路由 — 前台博客数据（无需鉴权）
  */
 import { Hono } from "hono";
+import { decodeSlugParam } from "@nami/shared/slug";
 import type { Env } from "../index";
 import { parsePagination } from "../lib/pagination";
 import {
@@ -94,7 +95,7 @@ publicRoutes.get("/posts", async (c) => {
 // ── GET /posts/:slug — 文章详情（+浏览计数 + 分类标签 + 前后篇） ──
 publicRoutes.get("/posts/:slug", async (c) => {
   const DB = c.env.DB;
-  const slug = c.req.param("slug");
+  const slug = decodeSlugParam(c.req.param("slug"));
 
   try {
     const result = await readThroughPublicCache({
@@ -166,8 +167,8 @@ publicRoutes.get("/posts/:slug", async (c) => {
 // ── POST /posts/:slug/view — 记录一次真实的文章阅读 ──
 publicRoutes.post("/posts/:slug/view", async (c) => {
   c.header("Cache-Control", "no-store");
-  const slug = c.req.param("slug");
-  if (!slug || slug.length > 200) {
+  const slug = decodeSlugParam(c.req.param("slug"));
+  if (!slug || slug.length > 255) {
     return c.json(
       { error: { code: "BAD_REQUEST", message: "文章 Slug 无效" } },
       400,

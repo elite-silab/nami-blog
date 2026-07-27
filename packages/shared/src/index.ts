@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { SLUG_PATTERN } from "./slug";
+
+export * from "./slug";
 
 // ── 文章状态枚举 ──
 export const PostStatus = {
@@ -24,7 +27,7 @@ export const PostSchema = z.object({
     .string()
     .min(1)
     .max(255)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    .regex(SLUG_PATTERN),
   content: z.string().min(1),
   excerpt: z.string().max(500).optional(),
   coverUrl: z.string().url().optional(),

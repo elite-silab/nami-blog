@@ -135,6 +135,21 @@ describe("GET /api/v1/posts/:slug — 文章详情", () => {
     expect(json.error.code).toBe("NOT_FOUND");
   });
 
+  it("旧版本留下的中文 slug 经 URL 编码后仍可访问", async () => {
+    await (env as any).DB.prepare(
+      `INSERT OR IGNORE INTO posts
+       (id, author_id, title, slug, content, status, is_public, published_at)
+       VALUES (90, 1, '旧文章', '成功部署', '旧正文', 'published', 1, datetime('now'))`,
+    ).run();
+
+    const res = await apiFetch(
+      `/api/v1/posts/${encodeURIComponent("成功部署")}`,
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.data.title).toBe("旧文章");
+  });
+
   it("草稿文章不应被公开访问", async () => {
     const res = await apiFetch("/api/v1/posts/draft-post");
     expect(res.status).toBe(404);

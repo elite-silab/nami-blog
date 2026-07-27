@@ -2,6 +2,7 @@
  * 管理后台路由 — 全部需要 adminAuth 鉴权
  */
 import { Hono } from "hono";
+import { isValidSlug } from "@nami/shared/slug";
 import type { Env } from "../index";
 import { adminAuth } from "../middleware/auth";
 import { parsePagination } from "../lib/pagination";
@@ -209,14 +210,16 @@ adminRoutes.post("/posts", async (c) => {
 
   const slug =
     (typeof body.slug === "string" ? body.slug.trim() : "") ||
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\u3400-\u9fff]+/g, "-")
-      .replace(/^-|-$/g, "") ||
     `post-${crypto.randomUUID().slice(0, 8)}`;
-  if (slug.length > 255) {
+  if (!isValidSlug(slug)) {
     return c.json(
-      { error: { code: "BAD_REQUEST", message: "URL Slug 最长为 255 个字符" } },
+      {
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "URL Slug 只能使用小写英文、数字和连字符，例如 my-first-post",
+        },
+      },
       400,
     );
   }
@@ -297,10 +300,10 @@ adminRoutes.put("/posts/:id", async (c) => {
   const id = c.req.param("id");
 
   const existing = await DB.prepare(
-    "SELECT id, status, is_public FROM posts WHERE id = ? AND deleted_at IS NULL",
+    "SELECT id, slug, status, is_public FROM posts WHERE id = ? AND deleted_at IS NULL",
   )
     .bind(id)
-    .first<{ id: number; status: string; is_public: number }>();
+    .first<{ id: number; slug: string; status: string; is_public: number }>();
   if (!existing)
     return c.json({ error: { code: "NOT_FOUND", message: "文章不存在" } }, 404);
 
@@ -325,9 +328,16 @@ adminRoutes.put("/posts/:id", async (c) => {
   }
   if (body.slug !== undefined) {
     const slug = typeof body.slug === "string" ? body.slug.trim() : "";
-    if (!slug || slug.length > 255) {
+    // 旧版本曾允许中文 Slug；未修改时保持可编辑，新值则使用统一英文规则。
+    if (slug !== existing.slug && !isValidSlug(slug)) {
       return c.json(
-        { error: { code: "BAD_REQUEST", message: "URL Slug 格式无效" } },
+        {
+          error: {
+            code: "BAD_REQUEST",
+            message:
+              "URL Slug 只能使用小写英文、数字和连字符，例如 my-first-post",
+          },
+        },
         400,
       );
     }
@@ -465,16 +475,39 @@ adminRoutes.post("/categories", async (c) => {
     description?: string;
     sort_order?: number;
   }>();
-  if (!body.name || !body.slug)
+  const name = body.name?.trim() || "";
+  const slug = body.slug?.trim() || "";
+  if (!name || !slug)
     return c.json(
-      { error: { code: "BAD_REQUEST", message: "名称和 slug 必填" } },
+      { error: { code: "BAD_REQUEST", message: "名称和 Slug 必填" } },
       400,
+    );
+  if (!isValidSlug(slug))
+    return c.json(
+      {
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "Slug 只能使用小写英文、数字和连字符，例如 dev-log",
+        },
+      },
+      400,
+    );
+  const duplicate = await c.env.DB.prepare(
+    "SELECT id FROM categories WHERE slug = ? AND deleted_at IS NULL LIMIT 1",
+  )
+    .bind(slug)
+    .first();
+  if (duplicate)
+    return c.json(
+      { error: { code: "CONFLICT", message: "Slug 已被其他分类使用" } },
+      409,
     );
 
   const result = await c.env.DB.prepare(
     "INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)",
   )
-    .bind(body.name, body.slug, body.description || null, body.sort_order || 0)
+    .bind(name, slug, body.description || null, body.sort_order || 0)
     .run();
 
   return c.json({ data: { id: result.meta.last_row_id, publication: publicContentChanged() } });
@@ -487,15 +520,55 @@ adminRoutes.put("/categories/:id", async (c) => {
     description?: string;
     sort_order?: number;
   }>();
+  const id = c.req.param("id");
+  const existing = await c.env.DB.prepare(
+    "SELECT id, slug FROM categories WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(id)
+    .first<{ id: number; slug: string }>();
+  if (!existing)
+    return c.json({ error: { code: "NOT_FOUND", message: "分类不存在" } }, 404);
+
+  const name = body.name?.trim();
+  const slug = body.slug?.trim();
+  if (body.name !== undefined && !name)
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "分类名称不能为空" } },
+      400,
+    );
+  if (slug !== undefined && slug !== existing.slug && !isValidSlug(slug))
+    return c.json(
+      {
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "Slug 只能使用小写英文、数字和连字符，例如 dev-log",
+        },
+      },
+      400,
+    );
+  if (slug !== undefined && slug !== existing.slug) {
+    const duplicate = await c.env.DB.prepare(
+      "SELECT id FROM categories WHERE slug = ? AND id != ? AND deleted_at IS NULL LIMIT 1",
+    )
+      .bind(slug, id)
+      .first();
+    if (duplicate)
+      return c.json(
+        { error: { code: "CONFLICT", message: "Slug 已被其他分类使用" } },
+        409,
+      );
+  }
+
   await c.env.DB.prepare(
     "UPDATE categories SET name = COALESCE(?, name), slug = COALESCE(?, slug), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
     .bind(
-      body.name || null,
-      body.slug || null,
+      name || null,
+      slug || null,
       body.description ?? null,
       body.sort_order ?? null,
-      c.req.param("id"),
+      id,
     )
     .run();
 
@@ -533,16 +606,39 @@ adminRoutes.post("/tags", async (c) => {
     slug?: string;
     color?: string;
   }>();
-  if (!body.name || !body.slug)
+  const name = body.name?.trim() || "";
+  const slug = body.slug?.trim() || "";
+  if (!name || !slug)
     return c.json(
-      { error: { code: "BAD_REQUEST", message: "名称和 slug 必填" } },
+      { error: { code: "BAD_REQUEST", message: "名称和 Slug 必填" } },
       400,
+    );
+  if (!isValidSlug(slug))
+    return c.json(
+      {
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "Slug 只能使用小写英文、数字和连字符，例如 cloudflare",
+        },
+      },
+      400,
+    );
+  const duplicate = await c.env.DB.prepare(
+    "SELECT id FROM tags WHERE slug = ? AND deleted_at IS NULL LIMIT 1",
+  )
+    .bind(slug)
+    .first();
+  if (duplicate)
+    return c.json(
+      { error: { code: "CONFLICT", message: "Slug 已被其他标签使用" } },
+      409,
     );
 
   const result = await c.env.DB.prepare(
     "INSERT INTO tags (name, slug, color) VALUES (?, ?, ?)",
   )
-    .bind(body.name, body.slug, body.color || null)
+    .bind(name, slug, body.color || null)
     .run();
 
   return c.json({ data: { id: result.meta.last_row_id, publication: publicContentChanged() } });
@@ -554,14 +650,54 @@ adminRoutes.put("/tags/:id", async (c) => {
     slug?: string;
     color?: string;
   }>();
+  const id = c.req.param("id");
+  const existing = await c.env.DB.prepare(
+    "SELECT id, slug FROM tags WHERE id = ? AND deleted_at IS NULL",
+  )
+    .bind(id)
+    .first<{ id: number; slug: string }>();
+  if (!existing)
+    return c.json({ error: { code: "NOT_FOUND", message: "标签不存在" } }, 404);
+
+  const name = body.name?.trim();
+  const slug = body.slug?.trim();
+  if (body.name !== undefined && !name)
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "标签名称不能为空" } },
+      400,
+    );
+  if (slug !== undefined && slug !== existing.slug && !isValidSlug(slug))
+    return c.json(
+      {
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "Slug 只能使用小写英文、数字和连字符，例如 cloudflare",
+        },
+      },
+      400,
+    );
+  if (slug !== undefined && slug !== existing.slug) {
+    const duplicate = await c.env.DB.prepare(
+      "SELECT id FROM tags WHERE slug = ? AND id != ? AND deleted_at IS NULL LIMIT 1",
+    )
+      .bind(slug, id)
+      .first();
+    if (duplicate)
+      return c.json(
+        { error: { code: "CONFLICT", message: "Slug 已被其他标签使用" } },
+        409,
+      );
+  }
+
   await c.env.DB.prepare(
     "UPDATE tags SET name = COALESCE(?, name), slug = COALESCE(?, slug), color = COALESCE(?, color), updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL",
   )
     .bind(
-      body.name || null,
-      body.slug || null,
+      name || null,
+      slug || null,
       body.color ?? null,
-      c.req.param("id"),
+      id,
     )
     .run();
 

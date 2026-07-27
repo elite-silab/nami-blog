@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { isValidSlug } from "@nami/shared/slug";
 import { adminFetch } from "@/lib/admin-session";
 import {
   applyMarkdownAction,
@@ -80,6 +81,8 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
   const [dirty, setDirty] = useState(false);
   const [savedDraft, setSavedDraft] = useState<FormState | null>(null);
   const hydrated = useRef(false);
+  const slugManuallyEdited = useRef(mode === "edit");
+  const originalSlug = useRef("");
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -134,6 +137,7 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
           is_public: post.is_public === 1,
           status: post.status || "draft",
         });
+        originalSlug.current = post.slug || "";
         hydrated.current = true;
         setSaveStatus("已载入，修改后请保存");
       })
@@ -197,13 +201,26 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
       setNotice("请先填写文章标题。");
       return;
     }
+    const rawSlug = form.slug.trim();
+    const keepLegacySlug =
+      mode === "edit" &&
+      rawSlug !== "" &&
+      rawSlug === originalSlug.current &&
+      !isValidSlug(rawSlug);
+    const slug = keepLegacySlug
+      ? rawSlug
+      : slugifyTitle(rawSlug || form.title);
+    if (!keepLegacySlug && !isValidSlug(slug)) {
+      setNotice("URL Slug 生成失败，请填写小写英文、数字或连字符。");
+      return;
+    }
     setBusy(true);
     setNotice("");
     setSaveStatus(status === "published" ? "正在发布…" : "正在保存…");
     const payload = {
       ...form,
       title: form.title.trim(),
-      slug: form.slug.trim() || slugifyTitle(form.title),
+      slug,
       cover_url: form.cover_url.trim() || null,
       category_id: form.category_id || null,
       is_pinned: form.is_pinned ? 1 : 0,
@@ -224,6 +241,8 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
         throw new Error(result.error?.message || "保存失败");
       }
       setDirty(false);
+      setForm((current) => ({ ...current, slug }));
+      originalSlug.current = slug;
       sessionStorage.removeItem("nami-new-post-draft");
       const message = publicationMessage(result.data?.publication?.status);
       setNotice(`✓ ${message}`);
@@ -308,6 +327,7 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
                 setForm(savedDraft);
                 setSavedDraft(null);
                 setDirty(true);
+                slugManuallyEdited.current = true;
               }}
               className="min-h-10 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs text-white"
             >
@@ -326,7 +346,9 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
               setForm((current) => ({
                 ...current,
                 title,
-                slug: current.slug || slugifyTitle(title),
+                slug: slugManuallyEdited.current
+                  ? current.slug
+                  : slugifyTitle(title),
               }));
               setDirty(true);
             }}
@@ -405,11 +427,17 @@ export function PostEditor({ mode }: { mode: "create" | "edit" }) {
             <h3 className="text-sm font-semibold">文章信息</h3>
             <input
               value={form.slug}
-              onChange={(event) => update("slug", event.target.value)}
+              onChange={(event) => {
+                slugManuallyEdited.current = true;
+                update("slug", event.target.value);
+              }}
               placeholder="URL Slug"
               aria-label="URL Slug"
               className={field}
             />
+            <p className="-mt-2 text-xs leading-5 text-[var(--color-text-tertiary)]">
+              标题会自动转为小写拼音，也可手动使用英文、数字和连字符。
+            </p>
             <textarea
               value={form.excerpt}
               onChange={(event) => update("excerpt", event.target.value)}

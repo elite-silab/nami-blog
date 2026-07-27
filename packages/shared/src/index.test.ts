@@ -52,6 +52,16 @@ describe("PostSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("不应接受中文 slug，避免 Worker 动态路由无法打开", () => {
+    const result = PostSchema.safeParse({
+      title: "测试文章",
+      slug: "测试文章",
+      content: "content",
+      status: "draft",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("status 必须是有效枚举值", () => {
     const result = PostSchema.safeParse({
       title: "test",

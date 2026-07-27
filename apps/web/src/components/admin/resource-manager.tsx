@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { adminFetch } from "@/lib/admin-session";
+import { slugifyTitle } from "@/lib/editor";
 import { readJson, type ApiErrorResult } from "@/lib/json";
 import { publicationMessage } from "@/lib/publication";
 
@@ -47,6 +48,12 @@ export function ResourceManager({ kind }: { kind: Kind }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [editing, setEditing] = useState<Partial<Row> | null>(null);
   const [notice, setNotice] = useState("");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+
+  function openEditor(row: Partial<Row>) {
+    setSlugManuallyEdited(Boolean(row.id));
+    setEditing(row);
+  }
 
   const load = useCallback(async () => {
     const response = await adminFetch(`/api/admin/${kind}`);
@@ -64,6 +71,10 @@ export function ResourceManager({ kind }: { kind: Kind }) {
     const payload: Record<string, unknown> = {};
     for (const [key, value] of form.entries()) {
       payload[key] = key === "sort_order" ? Number(value) || 0 : value || null;
+    }
+    if (kind !== "friends") {
+      payload.slug = slugifyTitle(String(payload.slug || payload.name || ""));
+      if (!payload.slug) return alert("请填写有效的 Slug。");
     }
     const response = await adminFetch(
       `/api/admin/${kind}${editing?.id ? `/${editing.id}` : ""}`,
@@ -110,7 +121,7 @@ export function ResourceManager({ kind }: { kind: Kind }) {
         </div>
         <button
           type="button"
-          onClick={() => setEditing(defaults[kind])}
+          onClick={() => openEditor(defaults[kind])}
           className="min-h-11 shrink-0 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white"
         >
           + 新建{labels[kind]}
@@ -152,7 +163,7 @@ export function ResourceManager({ kind }: { kind: Kind }) {
                   </p>
                   <div className="mt-4 flex justify-end gap-2 border-t border-[var(--color-border)] pt-3">
                     <button
-                      onClick={() => setEditing(row)}
+                      onClick={() => openEditor(row)}
                       className="min-h-10 rounded-lg px-3 text-sm text-[var(--color-primary)]"
                     >
                       编辑
@@ -202,7 +213,7 @@ export function ResourceManager({ kind }: { kind: Kind }) {
                       )}
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => setEditing(row)}
+                          onClick={() => openEditor(row)}
                           className="text-[var(--color-primary)]"
                         >
                           编辑
@@ -259,7 +270,21 @@ export function ResourceManager({ kind }: { kind: Kind }) {
               <input
                 name="name"
                 required
-                defaultValue={String(editing.name || "")}
+                value={String(editing.name || "")}
+                onChange={(event) => {
+                  const name = event.target.value;
+                  setEditing((current) =>
+                    current
+                      ? {
+                          ...current,
+                          name,
+                          ...(!slugManuallyEdited && kind !== "friends"
+                            ? { slug: slugifyTitle(name) }
+                            : {}),
+                        }
+                      : current,
+                  );
+                }}
                 autoFocus
                 className={field}
               />
@@ -270,11 +295,17 @@ export function ResourceManager({ kind }: { kind: Kind }) {
                 <input
                   name="slug"
                   required
-                  defaultValue={String(editing.slug || "")}
+                  value={String(editing.slug || "")}
+                  onChange={(event) => {
+                    setSlugManuallyEdited(true);
+                    setEditing((current) =>
+                      current ? { ...current, slug: event.target.value } : current,
+                    );
+                  }}
                   className={field}
                 />
                 <small className="text-[var(--color-text-tertiary)]">
-                  使用小写英文和连字符，例如 dev-log
+                  名称会自动转为小写拼音，例如 dev-log
                 </small>
               </label>
             )}

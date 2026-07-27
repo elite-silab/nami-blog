@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { decodeSlugParam } from "@nami/shared/slug";
 import { ShareButton, ViewCounter } from "@/components/article-enhancements";
 import { Comments } from "@/components/comments";
 import { fetchInternalApi } from "@/lib/cloudflare";
@@ -11,8 +12,9 @@ import type { ApiResponse, PostDetail } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 async function getPost(slug: string) {
+  const decodedSlug = decodeSlugParam(slug);
   const response = await fetchInternalApi(
-    `/api/v1/posts/${encodeURIComponent(slug)}`,
+    `/api/v1/posts/${encodeURIComponent(decodedSlug)}`,
   );
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`文章读取失败：${response.status}`);
