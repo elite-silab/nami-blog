@@ -39,9 +39,13 @@
 
 ## 截图
 
-| 博客首页 | 管理后台 |
-|:---:|:---:|
-| ![Nami 博客首页](.github/screenshot-frontend.png) | ![Nami 管理后台](.github/screenshot-admin.png) |
+### 博客首页
+
+![Nami 博客首页](.github/screenshot-frontend.png)
+
+### 管理后台
+
+![Nami 管理后台](.github/screenshot-admin.png)
 
 ## 架构
 
