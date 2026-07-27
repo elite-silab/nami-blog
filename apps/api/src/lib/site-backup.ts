@@ -342,6 +342,8 @@ export async function exportSiteBackup(DB: D1Database): Promise<SiteBackup> {
         created_at, updated_at FROM friends WHERE deleted_at IS NULL ORDER BY id`).all<BackupRow>(),
       DB.prepare(`SELECT key, value, updated_at FROM site_settings
         WHERE key IN ('site_name', 'site_subtitle', 'site_description', 'site_about',
+          'home_eyebrow', 'home_title', 'home_title_highlight', 'home_description',
+          'home_primary_label', 'home_secondary_label',
           'seo_description', 'site_theme', 'icp_number', 'comment_enabled',
           'comment_auto_approve', 'social_links', 'sensitive_words')
         ORDER BY key`).all<BackupRow>(),

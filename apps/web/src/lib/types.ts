@@ -22,10 +22,20 @@ export type SiteSettings = {
   site_description?: string;
   seo_description?: string;
   site_about?: string;
+  home_eyebrow?: string;
+  home_title?: string;
+  home_title_highlight?: string;
+  home_description?: string;
+  home_primary_label?: string;
+  home_secondary_label?: string;
   site_theme?: "sakura" | "ocean" | "starry";
   comment_enabled?: boolean;
   icp_number?: string;
-  social_links?: { github?: string | null; email?: string | null };
+  social_links?: {
+    github?: string | null;
+    twitter?: string | null;
+    email?: string | null;
+  };
 };
 
 export type PostDetail = PostSummary & {

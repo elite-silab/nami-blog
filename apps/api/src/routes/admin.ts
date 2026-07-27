@@ -823,10 +823,49 @@ adminRoutes.put("/settings", async (c) => {
   const DB = c.env.DB;
   const body = await c.req.json<Record<string, unknown>>();
 
+  const contentRules: Record<string, { label: string; maxLength: number }> = {
+    home_eyebrow: { label: "首页顶部标语", maxLength: 80 },
+    home_title: { label: "首页主标题", maxLength: 120 },
+    home_title_highlight: { label: "首页强调标题", maxLength: 120 },
+    home_description: { label: "首页简介", maxLength: 1_000 },
+    home_primary_label: { label: "首页主按钮文字", maxLength: 40 },
+    home_secondary_label: { label: "首页次按钮文字", maxLength: 40 },
+    site_about: { label: "关于页内容", maxLength: 50_000 },
+  };
+
+  for (const [key, rule] of Object.entries(contentRules)) {
+    const value = body[key];
+    if (value === undefined) continue;
+    if (typeof value !== "string") {
+      return c.json(
+        { error: { code: "BAD_REQUEST", message: `${rule.label}必须是文本` } },
+        400,
+      );
+    }
+    if (value.length > rule.maxLength) {
+      return c.json(
+        {
+          error: {
+            code: "BAD_REQUEST",
+            message: `${rule.label}不能超过 ${rule.maxLength} 个字符`,
+          },
+        },
+        400,
+      );
+    }
+  }
+
   const mappings: Record<string, string> = {
     site_name: "site_name",
     site_subtitle: "site_subtitle",
     seo_description: "seo_description",
+    site_about: "site_about",
+    home_eyebrow: "home_eyebrow",
+    home_title: "home_title",
+    home_title_highlight: "home_title_highlight",
+    home_description: "home_description",
+    home_primary_label: "home_primary_label",
+    home_secondary_label: "home_secondary_label",
     site_theme: "site_theme",
     comment_enabled: "comment_enabled",
     comment_auto_approve: "comment_auto_approve",
@@ -834,14 +873,10 @@ adminRoutes.put("/settings", async (c) => {
 
   for (const [bodyKey, dbKey] of Object.entries(mappings)) {
     if (body[bodyKey] !== undefined) {
-      const value =
-        typeof body[bodyKey] === "string"
-          ? JSON.stringify(body[bodyKey])
-          : JSON.stringify(body[bodyKey]);
       await DB.prepare(
         "INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))",
       )
-        .bind(dbKey, value)
+        .bind(dbKey, JSON.stringify(body[bodyKey]))
         .run();
     }
   }
