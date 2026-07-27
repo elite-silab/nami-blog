@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
+import { ThemePicker } from "@/components/theme-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { ThemeId } from "@/lib/theme";
 
 const links = [
   ["/blog", "文章"],
@@ -21,7 +23,7 @@ function SearchIcon() {
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ defaultTheme }: { defaultTheme: ThemeId }) {
   const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
 
@@ -79,6 +81,7 @@ export function SiteHeader() {
           >
             RSS
           </Link>
+          <ThemePicker defaultTheme={defaultTheme} />
           <ThemeToggle />
         </div>
 
@@ -124,6 +127,7 @@ export function SiteHeader() {
             <Link href="/rss.xml" className="rounded-xl bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
               RSS 订阅
             </Link>
+            <ThemePicker defaultTheme={defaultTheme} variant="mobile" />
           </div>
         </div>
       )}

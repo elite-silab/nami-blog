@@ -2,7 +2,14 @@
  * 主题系统测试
  */
 import { describe, it, expect } from "vitest";
-import { THEMES, DEFAULT_THEME, type ThemeId } from "./theme";
+import {
+  THEMES,
+  DEFAULT_THEME,
+  isThemeId,
+  readThemePreference,
+  THEME_INIT_SCRIPT,
+  type ThemeId,
+} from "./theme";
 
 describe("主题系统", () => {
   describe("THEMES 数组", () => {
@@ -72,6 +79,32 @@ describe("主题系统", () => {
     it("只允许三个有效 ID", () => {
       const validIds: ThemeId[] = ["sakura", "ocean", "starry"];
       expect(validIds).toHaveLength(3);
+    });
+
+    it("应拒绝未知的主题 ID", () => {
+      expect(isThemeId("ocean")).toBe(true);
+      expect(isThemeId("dark")).toBe(false);
+      expect(isThemeId(null)).toBe(false);
+    });
+  });
+
+  describe("访客主题偏好", () => {
+    it("应读取三个有效的本机主题", () => {
+      expect(readThemePreference("sakura")).toBe("sakura");
+      expect(readThemePreference("ocean")).toBe("ocean");
+      expect(readThemePreference("starry")).toBe("starry");
+    });
+
+    it("未设置或值无效时应跟随站点", () => {
+      expect(readThemePreference(null)).toBe("site");
+      expect(readThemePreference("")).toBe("site");
+      expect(readThemePreference("unknown")).toBe("site");
+    });
+
+    it("首屏脚本只应应用有效主题", () => {
+      expect(THEME_INIT_SCRIPT).toContain("theme === 'sakura'");
+      expect(THEME_INIT_SCRIPT).toContain("theme === 'ocean'");
+      expect(THEME_INIT_SCRIPT).toContain("theme === 'starry'");
     });
   });
 

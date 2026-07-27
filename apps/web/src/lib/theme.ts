@@ -9,6 +9,10 @@
  */
 
 export type ThemeId = "sakura" | "ocean" | "starry";
+export type ThemePreference = "site" | ThemeId;
+
+export const THEME_STORAGE_KEY = "nami-theme";
+export const THEME_CHANGE_EVENT = "nami-theme-change";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -100,6 +104,10 @@ export function isThemeId(value: unknown): value is ThemeId {
   return value === "sakura" || value === "ocean" || value === "starry";
 }
 
+export function readThemePreference(value: unknown): ThemePreference {
+  return isThemeId(value) ? value : "site";
+}
+
 /**
  * 浏览器端初始化脚本（内联在 <head> 中执行，避免闪烁）
  * 同时处理主题 + Dark 模式
@@ -107,8 +115,10 @@ export function isThemeId(value: unknown): value is ThemeId {
 export const THEME_INIT_SCRIPT = `
 (function() {
   try {
-    var theme = localStorage.getItem('nami-theme');
-    if (theme) document.documentElement.setAttribute('data-theme', theme);
+    var theme = localStorage.getItem('${THEME_STORAGE_KEY}');
+    if (theme === 'sakura' || theme === 'ocean' || theme === 'starry') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
     var dark = localStorage.getItem('nami-dark');
     if (dark === 'true') document.documentElement.setAttribute('data-dark', 'true');
   } catch(e) {}

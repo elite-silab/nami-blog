@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head><Script id="nami-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} /></head>
       <body className="site-shell relative min-h-screen overflow-x-clip antialiased">
         <a className="skip-link" href="#main-content">跳到主要内容</a>
-        <SiteHeader />
+        <SiteHeader defaultTheme={theme} />
         <main id="main-content" className="min-h-[calc(100vh-8rem)]">{children}</main>
         <SiteFooter />
       </body>

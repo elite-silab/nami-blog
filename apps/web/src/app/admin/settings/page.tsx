@@ -204,9 +204,6 @@ export default function SettingsPage() {
         ? `✓ ${publicationMessage(result.data?.publication?.status)}`
         : result.error?.message || "保存失败",
     );
-    if (response.ok) {
-      localStorage.setItem("nami-theme", settings.site_theme);
-    }
   }
 
   async function exportBackup() {
