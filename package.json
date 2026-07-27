@@ -1,7 +1,7 @@
 {
   "name": "nami-blog",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Nami 娜美 CF 博客 — Next.js + Hono 单 Cloudflare Worker 博客",
   "repository": {
